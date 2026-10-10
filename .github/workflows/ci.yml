@@ -23,7 +23,7 @@ jobs:
         run: dotnet restore Nops.slnx
 
       - name: Build
-        run: dotnet build --no-restore -c Release
+        run: dotnet build Nops.slnx --no-restore -c Release
 
       - name: Run format check
         run: dotnet format --verify-no-changes --severity warn --verbosity minimal
@@ -44,8 +44,11 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore Nops.slnx
 
+      - name: Build
+        run: dotnet build Nops.slnx --no-restore -c Release
+
       - name: Run tests
-        run: dotnet test --no-build -c Release --filter "FullyQualifiedName!~Integration" --verbosity normal
+        run: dotnet test Nops.slnx --no-build -c Release --filter "FullyQualifiedName!~Integration" --verbosity normal
 
       - name: Verify no cloud refs in Nops.Core
         run: |
@@ -66,34 +69,39 @@ jobs:
 
       - name: Install SOPS
         run: |
-          curl -LO "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64.bin"
-          chmod +x sops-v3.9.0.linux.amd64.bin
-          sudo mv sops-v3.9.0.linux.amd64.bin /usr/local/bin/sops
+          SOPS_VERSION=v3.13.3
+          curl -sLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64"
+          chmod +x "sops-${SOPS_VERSION}.linux.amd64"
+          sudo mv "sops-${SOPS_VERSION}.linux.amd64" /usr/local/bin/sops
           sops --version
 
       - name: Verify fixtures match plaintext
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_TEST_AGE_KEY }}
         run: |
-          for f in tests/Nops.Core.Tests/Fixtures/*.sops.yaml; do
-            plain="${f%.sops.yaml}.plain"
-            if [ -f "$plain" ]; then
-              sops decrypt "$f" > "/tmp/decrypted" 2>/dev/null || true
-              if ! diff -q "$plain" "/tmp/decrypted" >/dev/null 2>&1; then
-                echo "FAIL: Fixture mismatch: $f"
-                exit 1
-              fi
+          if [ -z "$SOPS_AGE_KEY" ]; then
+            echo "SOPS_TEST_AGE_KEY secret not set; using the committed test key"
+            export SOPS_AGE_KEY=$(grep AGE-SECRET-KEY tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt)
+          fi
+          fail=0
+          for f in tests/Nops.Core.Tests/Fixtures/*.sops.*; do
+            plain="${f}.plain"
+            [ -f "$plain" ] || continue
+            if ! sops decrypt "$f" > /tmp/decrypted 2>/tmp/sops_err; then
+              echo "FAIL: sops could not decrypt $f"
+              cat /tmp/sops_err
+              fail=1
+              continue
+            fi
+            if ! diff -q "$plain" /tmp/decrypted > /dev/null; then
+              echo "FAIL: fixture mismatch: $f"
+              diff "$plain" /tmp/decrypted | head -20
+              fail=1
+            else
+              echo "OK: $f"
             fi
           done
-          for f in tests/Nops.Core.Tests/Fixtures/*.sops.json; do
-            plain="${f%.sops.json}.plain"
-            if [ -f "$plain" ]; then
-              sops decrypt "$f" > "/tmp/decrypted" 2>/dev/null || true
-              if ! diff -q "$plain" "/tmp/decrypted" >/dev/null 2>&1; then
-                echo "FAIL: Fixture mismatch: $f"
-                exit 1
-              fi
-            fi
-          done
-          echo "PASS: All fixtures match plaintext"
+          exit $fail
 
   pack:
     runs-on: ubuntu-latest
@@ -108,19 +116,13 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Pack NuGet packages
-        run: |
-          dotnet pack src/Nops.Core/Nops.Core.csproj -c Release -o nupkgs
-          dotnet pack src/Nops.Configuration/Nops.Configuration.csproj -c Release -o nupkgs
-          for pkg in src/Nops.Core.*/Nops.Core.*.csproj; do
-            dotnet pack "$pkg" -c Release -o nupkgs 2>/dev/null || true
-          done
+        run: dotnet pack Nops.slnx -c Release -o nupkgs
 
       - name: Verify packages
         run: |
           ls -la nupkgs/
           for pkg in nupkgs/*.nupkg; do
-            echo "Package: $(basename $pkg)"
-            dotnet nuget inspect "$pkg" --property Id,Version 2>/dev/null || true
+            echo "Package: $(basename "$pkg")"
           done
 
       - name: Upload packages
