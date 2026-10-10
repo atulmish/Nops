@@ -1,0 +1,18 @@
+name: Debug OIDC
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+
+jobs:
+  claims:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show OIDC claims for nuget.org audience
+        run: |
+          token=$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://www.nuget.org" | python3 -c "import json,sys; print(json.load(sys.stdin)['value'])")
+          payload=$(echo "$token" | cut -d. -f2)
+          padding=$(( (4 - ${#payload} % 4) % 4 ))
+          echo "$payload$(printf '=%.0s' $(seq 1 $padding))" | base64 -d | python3 -m json.tool
