@@ -1,0 +1,36 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml,json,md}]
+indent_size = 2
+
+[*.cs]
+# Namespaces
+dotnet_style_namespace_match_folder = true:suggestion
+csharp_style_namespace_declarations = file_scoped:warning
+
+# var usage
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+
+# Modifiers
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
+
+# Braces
+csharp_prefer_braces = true:suggestion
+
+# Code style
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion

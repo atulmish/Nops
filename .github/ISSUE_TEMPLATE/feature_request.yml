@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an idea for Nops
+labels: ["enhancement"]
+body:
+  - type: textarea
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: How would you like this to work?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you have thought about.
+    validations:
+      required: false

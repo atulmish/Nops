@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a decryption or configuration bug
+labels: ["bug"]
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear description of what went wrong. Redact any real secrets.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: File format
+      options: [yaml, json, dotenv, ini, binary]
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Master key type
+      options: [age, pgp, aws_kms, gcp_kms, azure_kv, vault, other]
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Nops package version
+      placeholder: "1.0.0-preview.1"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: A minimal reproduction, including a redacted SOPS file and the exception or wrong output.
+    validations:
+      required: true

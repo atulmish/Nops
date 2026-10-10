@@ -3,15 +3,17 @@
     <Version>1.0.0-preview.1</Version>
     <Copyright>Copyright (c) Nops Contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/getsops/nops</RepositoryUrl>
+    <RepositoryUrl>https://github.com/atulmish/Nops</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageReadme>README.md</PackageReadme>
+    <PackageIcon>build/Nops.png</PackageIcon>
     <PackageTags>sops;encryption;age;pgp;secrets;kms;configuration</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)build/Nops.png" Pack="true" PackagePath="build/" Visible="false" />
   </ItemGroup>
 
   <!-- Symbol packaging -->
