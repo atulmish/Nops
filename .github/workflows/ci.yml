@@ -45,7 +45,7 @@ jobs:
         run: dotnet restore Nops.slnx
 
       - name: Run tests
-        run: dotnet test --no-build -c Release --filter FullQualifiedName!~Integration --verbosity normal
+        run: dotnet test --no-build -c Release --filter "FullyQualifiedName!~Integration" --verbosity normal
 
       - name: Verify no cloud refs in Nops.Core
         run: |

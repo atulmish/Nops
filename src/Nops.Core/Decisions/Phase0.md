@@ -1,4 +1,4 @@
-# Design Decisions — Phase 0
+# Design Decisions - Phase 0
 
 ## Decision 1: Target Framework
 
@@ -22,7 +22,7 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 ```
 
 **BouncyCastle API discovered:**
-- Constructor: `GcmBlockCipher(IBlockCipher c)` — pass `AesEngine`
+- Constructor: `GcmBlockCipher(IBlockCipher c)` - pass `AesEngine`
 - Init: `Init(bool forEncryption, ICipherParameters parameters)`
 - Process: `ProcessBlock(byte[] inBuf, int inOff, byte[] outBuf, int outOff)`
 
@@ -30,31 +30,31 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 
 ---
 
-## Decision 3: YAML Parsing — YamlDotNet `YamlStream`
+## Decision 3: YAML Parsing - YamlDotNet `YamlStream`
 
 **Decision:** Use `YamlStream` → `YamlMappingNode.Children` for ordered parsing.
 
 **Rationale:** `YamlMappingNode` exposes a `Children` property (discovered via reflection) that preserves insertion order from the source file. This is critical for SOPS MAC computation which depends on walk order.
 
 **Key types discovered:**
-- `YamlStream.Load(TextReader)` — parse YAML
-- `YamlMappingNode.Children` — ordered key-value pairs
-- `YamlSequenceNode` — arrays (list-like)
-- `YamlScalarNode.Value` — scalar value (string)
+- `YamlStream.Load(TextReader)` - parse YAML
+- `YamlMappingNode.Children` - ordered key-value pairs
+- `YamlSequenceNode` - arrays (list-like)
+- `YamlScalarNode.Value` - scalar value (string)
 
 **Note:** `YamlScalarNode.Comment` property not available in this version. Comments may need to be captured during parsing via the event stream or by using a different API.
 
 ---
 
-## Decision 4: PGP Key Loading — BouncyCastle `ArmoredInputStream`
+## Decision 4: PGP Key Loading - BouncyCastle `ArmoredInputStream`
 
 **Decision:** Use `Org.BouncyCastle.Bcpg.ArmoredInputStream` for reading PGP armored keys.
 
 **Rationale:** SOPS-encrypted files contain PGP `enc` fields with ASCII-armored PGP messages. BouncyCastle's `ArmoredInputStream` is the standard way to decode these.
 
 **Key types discovered:**
-- `Org.BouncyCastle.Bcpg.ArmoredInputStream` — decode armored PGP data
-- `Org.BouncyCastle.Bcpg.OpenPgp.*` — PGP message types (PgpEncryptedDataList, etc.)
+- `Org.BouncyCastle.Bcpg.ArmoredInputStream` - decode armored PGP data
+- `Org.BouncyCastle.Bcpg.OpenPgp.*` - PGP message types (PgpEncryptedDataList, etc.)
 
 ---
 
@@ -72,10 +72,10 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 
 | Item | Status |
 |------|--------|
-| `global.json` — SDK pinned to 10.0.100 | Done |
-| `Nops.sln` — solution file created | Done |
-| `src/Nops.Core/Nops.Core.csproj` — net10.0, nullable, implicit usings, warnings as errors | Done |
-| `tests/Nops.Core.Tests/Nops.Core.Tests.csproj` — xUnit, project ref to Core | Done |
+| `global.json` - SDK pinned to 10.0.100 | Done |
+| `Nops.sln` - solution file created | Done |
+| `src/Nops.Core/Nops.Core.csproj` - net10.0, nullable, implicit usings, warnings as errors | Done |
+| `tests/Nops.Core.Tests/Nops.Core.Tests.csproj` - xUnit, project ref to Core | Done |
 | `dotnet build` green | Done |
 | `dotnet test` (empty) green | Done |
 | Decision 2: AES-GCM = BouncyCastle.GcmBlockCipher | Done |

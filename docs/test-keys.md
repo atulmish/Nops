@@ -1,4 +1,4 @@
-# Test Keys — Nops
+# Test Keys - Nops
 
 Guidelines for managing test-only cryptographic material used in fixtures and CI.
 
@@ -15,16 +15,16 @@ tests/Nops.Core.Tests/Fixtures/Keys/
 
 ## Security Rules
 
-1. **NEVER commit production keys** — only test/dev keys
-2. **NEVER reuse test keys in production** — they are public in the repo
-3. **Rotate test keys periodically** — invalidate old fixtures after rotation
-4. **Document key purpose** — each key file should state what it's used for
+1. **NEVER commit production keys** - only test/dev keys
+2. **NEVER reuse test keys in production** - they are public in the repo
+3. **Rotate test keys periodically** - invalidate old fixtures after rotation
+4. **Document key purpose** - each key file should state what it's used for
 
 ## Age Test Identity
 
 ```
 # tests/Nops.Core.Tests/Fixtures/Keys/age-test-identity.txt
-AGE-SECRET-KEY-1234567890abcdef...  # TEST ONLY — NOT FOR PRODUCTION
+AGE-SECRET-KEY-1234567890abcdef...  # TEST ONLY - NOT FOR PRODUCTION
 ```
 
 Used to:

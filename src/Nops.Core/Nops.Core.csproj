@@ -8,7 +8,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>Nops.Core</PackageId>
     <Authors>Nops Contributors</Authors>
-    <Description>In-process SOPS decryption for .NET — format parsing, MAC verification, and age/PGP master keys with zero native dependencies.</Description>
+    <Description>In-process SOPS decryption for .NET - format parsing, MAC verification, and age/PGP master keys with zero native dependencies.</Description>
   </PropertyGroup>
 
   <ItemGroup>

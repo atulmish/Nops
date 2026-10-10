@@ -1,8 +1,11 @@
 # Nops
 
+[![CI](https://github.com/atulmish/Nops/actions/workflows/ci.yml/badge.svg)](https://github.com/atulmish/Nops/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 In-process [SOPS](https://github.com/getsops/sops) decryption for .NET. Zero native dependencies.
 
-Nops decrypts SOPS-encrypted files (YAML, JSON, dotenv, INI, binary) directly inside your application — no `sops` CLI, no subprocess, no temp files. It reads the `.sops` metadata, unwraps the data key with your master keys (age, PGP, AWS KMS, GCP KMS, Azure Key Vault, HashiCorp Vault), verifies the MAC, and hands you decrypted values.
+Nops decrypts SOPS-encrypted files (YAML, JSON, dotenv, INI, binary) directly inside your application - no `sops` CLI, no subprocess, no temp files. It reads the `.sops` metadata, unwraps the data key with your master keys (age, PGP, AWS KMS, GCP KMS, Azure Key Vault, HashiCorp Vault), verifies the MAC, and hands you decrypted values.
 
 > Nops reimplements the SOPS file format and cryptography in C# (no Go code is copied). SOPS itself is MPL-2.0; Nops is MIT.
 
@@ -89,4 +92,4 @@ Cloud integration tests are skipped unless their environment is available (e.g. 
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).

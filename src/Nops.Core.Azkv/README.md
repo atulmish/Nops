@@ -1,6 +1,6 @@
 # Nops.Core.Azkv
 
-Azure Key Vault master key provider for [Nops](https://github.com/getsops/nops) — in-process SOPS decryption.
+Azure Key Vault master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
 
 ## Installation
 
@@ -103,3 +103,7 @@ Integration tests require Azure credentials:
 ```bash
 AZURE_LIVE_TEST=1 dotnet test tests/Nops.Core.Azkv.Tests --filter FullyQualifiedName~AzkvIntegrationTests
 ```
+
+## License
+
+MIT - see [LICENSE](../../LICENSE).

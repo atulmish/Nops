@@ -1,6 +1,6 @@
 # Nops.Core.Vault
 
-HashiCorp Vault Transit and HCKMS master key providers for [Nops](https://github.com/getsops/nops) — in-process SOPS decryption.
+HashiCorp Vault Transit and HCKMS master key providers for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
 
 ## Installation
 
@@ -119,3 +119,7 @@ Integration tests require a running Vault server:
 docker run -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=root -e VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200 vault:latest dev
 VAULT_ADDR=http://localhost:8200 dotnet test tests/Nops.Core.Vault.Tests --filter FullyQualifiedName~VaultIntegrationTests
 ```
+
+## License
+
+MIT - see [LICENSE](../../LICENSE).

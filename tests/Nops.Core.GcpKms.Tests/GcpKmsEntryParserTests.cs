@@ -4,7 +4,7 @@ using Nops.Core.Keys;
 namespace Nops.Core.GcpKms.Tests;
 
 /// <summary>
-/// Tests for GcpKmsEntryParser — parsing opaque .sops GCP KMS dict entries.
+/// Tests for GcpKmsEntryParser - parsing opaque .sops GCP KMS dict entries.
 /// </summary>
 public class GcpKmsEntryParserTests
 {

@@ -1,6 +1,6 @@
 # Nops.Core.AwsKms
 
-AWS KMS master key provider for [Nops](https://github.com/getsops/nops) — in-process SOPS decryption.
+AWS KMS master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
 
 ## Installation
 
@@ -87,7 +87,7 @@ Minimum IAM policy for KMS decrypt:
 }
 ```
 
-If using encryption context, the same policy applies — context matching is enforced at decrypt time.
+If using encryption context, the same policy applies - context matching is enforced at decrypt time.
 
 ## Encryption Context Mapping
 
@@ -130,3 +130,7 @@ Integration tests require LocalStack:
 docker-compose -f tests/docker-compose.localstack.yml up -d
 AWS_LIVE_TEST=1 dotnet test tests/Nops.Core.AwsKms.Tests --filter FullyQualifiedName~AwsKmsIntegrationTests
 ```
+
+## License
+
+MIT - see [LICENSE](../../LICENSE).

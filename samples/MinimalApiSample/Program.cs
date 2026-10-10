@@ -28,11 +28,11 @@ if (app.Environment.IsDevelopment())
 
     app.MapGet("/", () =>
         """
-        MinimalApiSample — Nops Configuration Demo
+        MinimalApiSample - Nops Configuration Demo
         
         Endpoints:
-          GET /       — This help text
-          GET /secret — Decrypted secrets (dev only)
+          GET /       - This help text
+          GET /secret - Decrypted secrets (dev only)
         
         To run with a SOPS-encrypted file:
           1. Place secrets.sops.yaml in the output directory

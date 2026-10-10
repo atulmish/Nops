@@ -187,7 +187,7 @@ public class SopsConfigurationProvider : ConfigurationProvider
             }
             catch
             {
-                // Ignore errors during reload — the next explicit load will pick up changes
+                // Ignore errors during reload - the next explicit load will pick up changes
             }
         }, TaskScheduler.Default);
     }
@@ -205,7 +205,7 @@ public class SopsConfigurationProvider : ConfigurationProvider
             "env" or "dotenv" => "dotenv",
             "ini" => "ini",
             "bin" => "binary",
-            _ => throw new InvalidOperationException($"Unknown file extension '.{ext}' — specify FileKind explicitly")
+            _ => throw new InvalidOperationException($"Unknown file extension '.{ext}' - specify FileKind explicitly")
         };
     }
 

@@ -1,4 +1,4 @@
-# TEST-ONLY Keys — NOT FOR PRODUCTION
+# TEST-ONLY Keys - NOT FOR PRODUCTION
 
 ## Age Test Key
 

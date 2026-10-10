@@ -4,7 +4,7 @@ using Nops.Core.Keys;
 namespace Nops.Core.Azkv.Tests;
 
 /// <summary>
-/// Tests for AzkvEntryParser — parsing opaque .sops Azure KV dict entries.
+/// Tests for AzkvEntryParser - parsing opaque .sops Azure KV dict entries.
 /// </summary>
 public class AzkvEntryParserTests
 {

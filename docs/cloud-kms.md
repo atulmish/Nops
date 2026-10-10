@@ -1,4 +1,4 @@
-# Cloud KMS Setup — Nops
+# Cloud KMS Setup - Nops
 
 Configuration for AWS KMS, Google Cloud KMS, Azure Key Vault, and HashiCorp Vault.
 
@@ -241,7 +241,7 @@ sops:
       enc: BASE64...
 ```
 
-Nops will try age first, then AWS KMS, then GCP KMS — returning on first success.
+Nops will try age first, then AWS KMS, then GCP KMS - returning on first success.
 
 ## Testing
 

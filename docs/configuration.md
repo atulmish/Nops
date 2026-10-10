@@ -1,4 +1,4 @@
-# Configuration Provider — Nops
+# Configuration Provider - Nops
 
 ASP.NET Core `IConfiguration` integration for SOPS-encrypted files.
 
@@ -115,7 +115,7 @@ var v3 = config["App:Db:Host"];    // "localhost" (same)
 
 ## Multi-File Overlay
 
-Add multiple SOPS files — last source wins for overlapping keys:
+Add multiple SOPS files - last source wins for overlapping keys:
 
 ```csharp
 // Base secrets (required)

@@ -1,4 +1,4 @@
-# Quickstart — Nops
+# Quickstart - Nops
 
 In-process SOPS decryption for .NET. Zero native dependencies.
 
@@ -23,7 +23,7 @@ dotnet add package Nops.Core.Azkv        # Azure Key Vault
 dotnet add package Nops.Core.Vault       # HashiCorp Vault + HCKMS
 ```
 
-## Minimal Example — Decrypt a SOPS File
+## Minimal Example - Decrypt a SOPS File
 
 ```csharp
 using Nops.Core;
@@ -81,10 +81,10 @@ cd samples/ConfigurationSample
 dotnet run
 ```
 
-Both samples use test fixtures — never prod keys.
+Both samples use test fixtures - never prod keys.
 
 ## Next Steps
 
-- [Configuration Provider](configuration.md) — ASP.NET Core integration details
-- [Cloud KMS Setup](cloud-kms.md) — AWS, GCP, Azure, Vault authentication
-- [Test Keys](test-keys.md) — Managing test-only cryptographic material
+- [Configuration Provider](configuration.md) - ASP.NET Core integration details
+- [Cloud KMS Setup](cloud-kms.md) - AWS, GCP, Azure, Vault authentication
+- [Test Keys](test-keys.md) - Managing test-only cryptographic material

@@ -238,7 +238,7 @@ public class HckmsMasterKey : IMasterKeyProvider
     {
         // HCKMS decrypts via GCP KMS API when accessed directly,
         // or via Vault Transit when accessed through a Vault connection.
-        // For now, return null — real implementation would depend on auth method.
+        // For now, return null - real implementation would depend on auth method.
 
         if (VaultToken != null)
         {

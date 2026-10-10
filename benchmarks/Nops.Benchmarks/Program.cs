@@ -9,7 +9,7 @@ using BenchmarkDotNet.Running;
 namespace Nops.Benchmarks;
 
 /// <summary>
-/// Benchmarks for Nops — in-process SOPS decryption performance.
+/// Benchmarks for Nops - in-process SOPS decryption performance.
 /// 
 /// Run: dotnet run -c Release --project benchmarks/Nops.Benchmarks
 /// 
@@ -34,7 +34,7 @@ public class DecryptBenchmarks
     [Benchmark(Baseline = true)]
     public Task<byte[]> DecryptSmallYaml()
     {
-        // Placeholder — real benchmark would use:
+        // Placeholder - real benchmark would use:
         // return SopsFile.DecryptToDictionaryAsync(_smallYaml, "yaml", options);
         return Task.FromResult(Array.Empty<byte>());
     }
@@ -68,7 +68,7 @@ public class DecryptBenchmarks
     [Benchmark]
     public byte[] AgeKeyUnwrap()
     {
-        // Placeholder — real benchmark would test AgeMasterKey.DecryptShareAsync
+        // Placeholder - real benchmark would test AgeMasterKey.DecryptShareAsync
         return Array.Empty<byte>();
     }
 
@@ -79,7 +79,7 @@ public class DecryptBenchmarks
     [Benchmark]
     public byte[] PgpKeyUnwrap()
     {
-        // Placeholder — real benchmark would test PgpMasterKey.DecryptShareAsync
+        // Placeholder - real benchmark would test PgpMasterKey.DecryptShareAsync
         return Array.Empty<byte>();
     }
 
@@ -90,7 +90,7 @@ public class DecryptBenchmarks
     [Benchmark]
     public Task<byte[]> ColdStartDecrypt()
     {
-        // Placeholder — run DecryptSmallYaml once before measuring
+        // Placeholder - run DecryptSmallYaml once before measuring
         return Task.FromResult(Array.Empty<byte>());
     }
 
@@ -101,7 +101,7 @@ public class DecryptBenchmarks
     [Benchmark]
     public Task<byte[]> WarmDecrypt()
     {
-        // Placeholder — run DecryptSmallYaml multiple times, measure later iterations
+        // Placeholder - run DecryptSmallYaml multiple times, measure later iterations
         return Task.FromResult(Array.Empty<byte>());
     }
 

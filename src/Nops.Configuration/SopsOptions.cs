@@ -6,7 +6,7 @@ namespace Nops.Configuration;
 
 /// <summary>
 /// Options for SOPS configuration provider.
-/// Fluent builder pattern — all properties are optional with sensible defaults.
+/// Fluent builder pattern - all properties are optional with sensible defaults.
 /// </summary>
 public class SopsOptions
 {
@@ -51,7 +51,7 @@ public class SopsOptions
 
     /// <summary>
     /// Whether the file is optional (no exception if missing).
-    /// Default: false — throws SopsException if file not found.
+    /// Default: false - throws SopsException if file not found.
     /// </summary>
     public bool Optional { get; set; }
 
@@ -123,7 +123,7 @@ public enum FileNotFoundMode
     WarnAndContinue,
 
     /// <summary>
-    /// Silently ignore missing files — no values loaded, no warnings.
+    /// Silently ignore missing files - no values loaded, no warnings.
     /// </summary>
     Ignore
 }

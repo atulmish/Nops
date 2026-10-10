@@ -134,7 +134,7 @@ public class ServiceCollectionExtensionsTests
             var builder = new ConfigurationBuilder();
             builder.AddSops(tempFile, opts => opts.Optional = true);
 
-            // The source was added — verify by building and checking providers
+            // The source was added - verify by building and checking providers
             var config = builder.Build();
             // If we got here without exception, the source was added successfully
             Assert.NotNull(config);
@@ -222,7 +222,7 @@ public class SopsConfigurationProviderTests
             Optional = true
         };
 
-        // Should not throw — but will fail to load since file doesn't exist
+        // Should not throw - but will fail to load since file doesn't exist
         var provider = new SopsConfigurationProvider(options);
         Assert.NotNull(provider);
     }
@@ -271,7 +271,7 @@ public class SopsConfigurationProviderTests
 
             var provider = new SopsConfigurationProvider(options);
 
-            // Should not throw — just produce empty config
+            // Should not throw - just produce empty config
             provider.Load();
 
             Assert.False(((IConfigurationProvider)provider).TryGet("any", out _));

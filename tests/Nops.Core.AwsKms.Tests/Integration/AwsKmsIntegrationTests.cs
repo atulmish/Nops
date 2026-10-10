@@ -123,7 +123,7 @@ public class AwsKmsIntegrationTests : IClassFixture<AwsKmsIntegrationFixture>, I
 
         byte[]? decrypted = await masterKey.DecryptShareAsync(encryptedShare);
 
-        // LocalStack may or may not enforce context matching — this test documents behavior
+        // LocalStack may or may not enforce context matching - this test documents behavior
         // In production AWS KMS, wrong context would cause Decrypt to fail
     }
 

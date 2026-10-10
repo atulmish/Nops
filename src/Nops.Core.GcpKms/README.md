@@ -1,6 +1,6 @@
 # Nops.Core.GcpKms
 
-Google Cloud KMS master key provider for [Nops](https://github.com/getsops/nops) — in-process SOPS decryption.
+Google Cloud KMS master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
 
 ## Installation
 
@@ -87,3 +87,7 @@ Integration tests require GCP credentials or emulator:
 ```bash
 GCP_LIVE_TEST=1 dotnet test tests/Nops.Core.GcpKms.Tests --filter FullyQualifiedName~GcpKmsIntegrationTests
 ```
+
+## License
+
+MIT - see [LICENSE](../../LICENSE).

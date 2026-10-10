@@ -5,7 +5,7 @@ using Nops.Core.Keys;
 namespace Nops.Core.AwsKms.Tests;
 
 /// <summary>
-/// Tests for AwsKmsEntryParser — parsing opaque .sops KMS dict entries.
+/// Tests for AwsKmsEntryParser - parsing opaque .sops KMS dict entries.
 /// </summary>
 public class AwsKmsEntryParserTests
 {

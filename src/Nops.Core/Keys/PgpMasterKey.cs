@@ -34,7 +34,7 @@ public class PgpMasterKey : IMasterKeyProvider
 
     /// <summary>
     /// Optional passphrase for the PGP private key.
-    /// SOPS requires explicit passphrase handling — never silently ignore.
+    /// SOPS requires explicit passphrase handling - never silently ignore.
     /// </summary>
     public string? Passphrase { get; }
 
@@ -120,7 +120,7 @@ public class PgpMasterKey : IMasterKeyProvider
                 }
                 else
                 {
-                    // No passphrase — try without encryption (unlikely for SOPS files)
+                    // No passphrase - try without encryption (unlikely for SOPS files)
                     throw new NotSupportedException(
                         "PGP private key requires a passphrase. SOPS does not support unencrypted PGP keys.");
                 }

@@ -4,7 +4,7 @@ using Nops.Core.Keys;
 namespace Nops.Core.Vault.Tests;
 
 /// <summary>
-/// Tests for VaultEntryParser — parsing opaque .sops HashiCorp entries.
+/// Tests for VaultEntryParser - parsing opaque .sops HashiCorp entries.
 /// </summary>
 public class VaultTransitEntryParserTests
 {
