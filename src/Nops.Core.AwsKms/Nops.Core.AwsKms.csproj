@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>true</IsPackable>
+    <PackageId>Nops.Core.AwsKms</PackageId>
+    <Authors>Nops Contributors</Authors>
+    <Description>AWS KMS master key provider for Nops — in-process SOPS decryption.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nops.Core\Nops.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.Core" Version="4.0.102.8" />
+    <PackageReference Include="AWSSDK.KeyManagementService" Version="4.0.100.15" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.1.3" />
+  </ItemGroup>
+
+</Project>

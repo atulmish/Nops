@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <IsPackable>true</IsPackable>
+    <PackageId>Nops.Core</PackageId>
+    <Authors>Nops Contributors</Authors>
+    <Description>In-process SOPS decryption for .NET — format parsing, MAC verification, and age/PGP master keys with zero native dependencies.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AgeSharp" Version="0.2.0-preview.4" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+  </ItemGroup>
+
+</Project>

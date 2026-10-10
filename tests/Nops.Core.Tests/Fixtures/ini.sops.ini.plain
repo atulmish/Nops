@@ -1,0 +1,8 @@
+[database]
+host     = localhost
+port     = 5432
+password = dbpass123
+
+[api]
+key      = api-key-secret
+endpoint = https://api.example.com

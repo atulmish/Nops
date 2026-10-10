@@ -1,0 +1,21 @@
+# This is a public comment
+public_value: visible
+# sops_encrypted_comment: this should be encrypted
+secret_value: hidden-data
+# another_public_comment
+more_secret: also-hidden
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBPeWw3bFp3Qkt6OTVnckpj
+            K3NqQ3JDMDVwMytncXlDMUJHOVFtcGVIcm1zClNjVTgwbUtVRERpOXdKRS9YLzdw
+            bW1oZEVkWGlleU5hTVA3MTVmcFl1bzQKLS0tIHV2REFRWjB3b0FBb3AzMC9zakZZ
+            SnBSQm1RLzgwcWFnMUtaVUF4Qm9uK00K+f+GvlhfXni1JA2f8q7ajzfujGpcXuDa
+            eUyUOzZGLLiRXo4SnrElgYNML/uqdTJUCpfHaCooDxFjD+sE1DOlAA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1q4rff6x85y5jnatyphqst5h83njnnv9whguftdutr7t5x0g5pcgs6z9edz
+    encrypted_comment_regex: ^sops_
+    lastmodified: "2026-10-02T16:57:03Z"
+    mac: ENC[AES256_GCM,data:RcTV4l1m2MwWMio/MoBhEITBDdh2UTrpcUEIFmXr5ta0xTwPwiVDCMF3F8DoSL0th8Ua13ASKrogXEfwVkaw5lJ3od3kKnA5TplXtIz13L9Z7aPmh8hZCoGZ1aKmTgpU4/oh8aCGdx1jcDsDGpJbMZFKd6Qm5YoqgcKE8AG4TMQ=,iv:EaOsLmDDWazpR5WDokhUMoZ+hFB/cKaqcr450XcZT0E=,tag:wOye7Z2CrsGxxVOyeGC9rg==,type:str]
+    version: 3.13.3

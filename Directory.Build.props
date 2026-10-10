@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <Version>1.0.0-preview.1</Version>
+    <Copyright>Copyright (c) Nops Contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/getsops/nops</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageReadme>README.md</PackageReadme>
+    <PackageTags>sops;encryption;age;pgp;secrets;kms;configuration</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <!-- Symbol packaging -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Documentation XML -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

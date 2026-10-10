@@ -1,0 +1,12 @@
+level1:
+    level2:
+        level3:
+            level4:
+                secret: deep-value-42
+array_of_secrets:
+    - first
+    - second
+    - third
+mixed:
+    encrypted: hidden
+    unencrypted_public: visible

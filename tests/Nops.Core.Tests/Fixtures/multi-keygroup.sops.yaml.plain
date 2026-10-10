@@ -1,0 +1,5 @@
+database:
+    host: localhost
+    port: 5432
+    password: super-secret-password
+api_key: my-api-key-12345

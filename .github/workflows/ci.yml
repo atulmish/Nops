@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore Nops.slnx
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Run format check
+        run: dotnet format --verify-no-changes --severity warn --verbosity minimal
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore Nops.slnx
+
+      - name: Run tests
+        run: dotnet test --no-build -c Release --filter FullQualifiedName!~Integration --verbosity normal
+
+      - name: Verify no cloud refs in Nops.Core
+        run: |
+          cloud_pkgs=$(dotnet list src/Nops.Core/Nops.Core.csproj package --include-transitive \
+            | grep -E "AWSSDK|Google\.Cloud|Azure\.Security|HashiCorp" || true)
+          if [ -n "$cloud_pkgs" ]; then
+            echo "ERROR: Nops.Core must not reference cloud SDK packages:"
+            echo "$cloud_pkgs"
+            exit 1
+          fi
+          echo "PASS: Nops.Core has no cloud SDK references"
+
+  sops-verify:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SOPS
+        run: |
+          curl -LO "https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64.bin"
+          chmod +x sops-v3.9.0.linux.amd64.bin
+          sudo mv sops-v3.9.0.linux.amd64.bin /usr/local/bin/sops
+          sops --version
+
+      - name: Verify fixtures match plaintext
+        run: |
+          for f in tests/Nops.Core.Tests/Fixtures/*.sops.yaml; do
+            plain="${f%.sops.yaml}.plain"
+            if [ -f "$plain" ]; then
+              sops decrypt "$f" > "/tmp/decrypted" 2>/dev/null || true
+              if ! diff -q "$plain" "/tmp/decrypted" >/dev/null 2>&1; then
+                echo "FAIL: Fixture mismatch: $f"
+                exit 1
+              fi
+            fi
+          done
+          for f in tests/Nops.Core.Tests/Fixtures/*.sops.json; do
+            plain="${f%.sops.json}.plain"
+            if [ -f "$plain" ]; then
+              sops decrypt "$f" > "/tmp/decrypted" 2>/dev/null || true
+              if ! diff -q "$plain" "/tmp/decrypted" >/dev/null 2>&1; then
+                echo "FAIL: Fixture mismatch: $f"
+                exit 1
+              fi
+            fi
+          done
+          echo "PASS: All fixtures match plaintext"
+
+  pack:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Pack NuGet packages
+        run: |
+          dotnet pack src/Nops.Core/Nops.Core.csproj -c Release -o nupkgs
+          dotnet pack src/Nops.Configuration/Nops.Configuration.csproj -c Release -o nupkgs
+          for pkg in src/Nops.Core.*/Nops.Core.*.csproj; do
+            dotnet pack "$pkg" -c Release -o nupkgs 2>/dev/null || true
+          done
+
+      - name: Verify packages
+        run: |
+          ls -la nupkgs/
+          for pkg in nupkgs/*.nupkg; do
+            echo "Package: $(basename $pkg)"
+            dotnet nuget inspect "$pkg" --property Id,Version 2>/dev/null || true
+          done
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs
+          path: nupkgs/

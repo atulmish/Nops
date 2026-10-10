@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/ConfigurationSample/ConfigurationSample.csproj" />
+    <Project Path="samples/MinimalApiSample/MinimalApiSample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Nops.Configuration/Nops.Configuration.csproj" />
+    <Project Path="src/Nops.Core.AwsKms/Nops.Core.AwsKms.csproj" />
+    <Project Path="src/Nops.Core.Azkv/Nops.Core.Azkv.csproj" />
+    <Project Path="src/Nops.Core.GcpKms/Nops.Core.GcpKms.csproj" />
+    <Project Path="src/Nops.Core.Vault/Nops.Core.Vault.csproj" />
+    <Project Path="src/Nops.Core/Nops.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Nops.Configuration.Tests/Nops.Configuration.Tests.csproj" />
+    <Project Path="tests/Nops.Core.AwsKms.Tests/Nops.Core.AwsKms.Tests.csproj" />
+    <Project Path="tests/Nops.Core.Azkv.Tests/Nops.Core.Azkv.Tests.csproj" />
+    <Project Path="tests/Nops.Core.GcpKms.Tests/Nops.Core.GcpKms.Tests.csproj" />
+    <Project Path="tests/Nops.Core.Tests/Nops.Core.Tests.csproj" />
+    <Project Path="tests/Nops.Core.Vault.Tests/Nops.Core.Vault.Tests.csproj" />
+  </Folder>
+</Solution>

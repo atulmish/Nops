@@ -1,0 +1,3 @@
+secret_key: should-be-encrypted
+public_key: not-secret
+another_secret: also-hidden
