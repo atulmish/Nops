@@ -109,10 +109,12 @@ public class SopsConfigurationProvider : ConfigurationProvider
         var options = new Nops.Core.SopsOptions
         {
             FilePath = _filePath,
-            // ResolveMasterKeys already turns AgeIdentities into providers unless explicit
-            // MasterKeys were supplied; passing them again would try every identity twice.
+            // ResolveMasterKeys already turns AgeIdentities/PgpKeys into providers unless
+            // explicit MasterKeys were supplied; in that case let Nops.Core add them on top.
             AgeIdentities = _options.MasterKeys != null ? _options.AgeIdentities : null,
-            MasterKeys = masterKeys
+            PgpKeys = _options.MasterKeys != null ? _options.PgpKeys : null,
+            MasterKeys = masterKeys,
+            UseSopsEnvironment = _options.UseSopsEnvironment,
         };
 
         // Decrypt to dictionary using SopsFile

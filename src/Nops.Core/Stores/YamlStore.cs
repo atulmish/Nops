@@ -260,12 +260,12 @@ public static class YamlStore
             switch (Current)
             {
                 case Scalar scalar:
-                {
-                    Advance();
-                    var value = ParseScalar(scalar);
-                    RegisterAnchor(scalar.Anchor, value);
-                    return value;
-                }
+                    {
+                        Advance();
+                        var value = ParseScalar(scalar);
+                        RegisterAnchor(scalar.Anchor, value);
+                        return value;
+                    }
                 case MappingStart:
                     return ReadMapping();
                 case SequenceStart:

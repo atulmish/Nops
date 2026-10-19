@@ -62,8 +62,8 @@ public static class DataKeyResolver
                 throw unsupported;
 
             throw new InvalidOperationException(
-                $"Cannot decrypt: no master key could decrypt the data key. " +
-                $"Provided {providers.Count} provider(s).");
+                $"Cannot decrypt: none of the {providers.Count} configured master key(s) could decrypt the data key. " +
+                DescribeRecipients(groups));
         }
 
         // Multiple key groups: Shamir secret sharing. Collect >= threshold shares.
@@ -87,7 +87,8 @@ public static class DataKeyResolver
 
         if (collected.Count < threshold)
             throw new InvalidOperationException(
-                $"Cannot decrypt: need {threshold} shares but only got {collected.Count} from {groups.Count} group(s).");
+                $"Cannot decrypt: need {threshold} shares but only got {collected.Count} from {groups.Count} key group(s). " +
+                DescribeRecipients(groups));
 
         return Shamir.Combine(collected.ToArray());
     }
@@ -126,6 +127,16 @@ public static class DataKeyResolver
         }
 
         return flat.Count > 0 ? new List<KeyGroup> { new(flat) } : Array.Empty<KeyGroup>();
+    }
+
+    private static string DescribeRecipients(IReadOnlyList<KeyGroup> groups)
+    {
+        var types = groups.SelectMany(g => g.Keys)
+            .GroupBy(k => k.KeyType, StringComparer.Ordinal)
+            .Select(g => $"{g.Key} x{g.Count()}");
+        return $"The file is encrypted for: {string.Join(", ", types)}. " +
+            "Supply a matching key via AgeIdentities, PgpKeys or MasterKeys, or the sops " +
+            "environment (SOPS_AGE_KEY, SOPS_AGE_KEY_FILE, ~/.config/sops/age/keys.txt).";
     }
 
     private static async Task<byte[]?> TryDecryptGroupAsync(

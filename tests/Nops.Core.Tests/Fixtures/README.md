@@ -34,6 +34,7 @@ Each encrypted fixture `X.sops.<ext>` has an expected plaintext `X.sops.<ext>.pl
 ## Usage
 
 To decrypt any fixture:
+
 ```bash
 export SOPS_AGE_KEY_FILE=AGE-TEST-KEY.txt
 sops --decrypt secrets.sops.yaml

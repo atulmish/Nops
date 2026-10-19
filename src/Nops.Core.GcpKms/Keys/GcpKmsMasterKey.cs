@@ -34,7 +34,8 @@ public class GcpKmsMasterKey : IMasterKeyProvider
     public string ResourceName { get; }
 
     /// <summary>
-    /// The encrypted data key share (base64-encoded).
+    /// Informational only: decryption uses the encrypted share read from the SOPS file
+    /// metadata, so this can be left empty.
     /// </summary>
     public string EncryptedShare { get; }
 
@@ -51,7 +52,7 @@ public class GcpKmsMasterKey : IMasterKeyProvider
     /// <summary>
     /// Creates a new GCP KMS master key provider.
     /// </summary>
-    public GcpKmsMasterKey(string resourceName, string encryptedShare, IReadOnlyList<KeyValuePair<string, string>>? context = null, KeyManagementServiceClient? client = null)
+    public GcpKmsMasterKey(string resourceName, string encryptedShare = "", IReadOnlyList<KeyValuePair<string, string>>? context = null, KeyManagementServiceClient? client = null)
     {
         ResourceName = resourceName;
         EncryptedShare = encryptedShare;

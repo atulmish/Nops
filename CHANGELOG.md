@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Age keys are found the same way as the sops CLI: `SOPS_AGE_KEY`, `SOPS_AGE_KEY_FILE` and the default `sops/age/keys.txt` (opt out with `UseSopsEnvironment = false`)
+- Decryption failures name the key types the file is encrypted for and where keys can be supplied
+- NuGet packages include their README; KMS packages ship their own
+
+### Changed
+
+- `Nops.Configuration` depends on `Microsoft.Extensions.Configuration` and `Microsoft.Extensions.Hosting.Abstractions` instead of the ASP.NET Core shared framework, so it works in console apps and worker services
+- The `encryptedShare` constructor argument of the KMS master keys is optional (it was never used; the share is read from the file)
+- `PgpKeys` and `AgeIdentities` are used alongside `MasterKeys` in `Nops.Configuration`
+
 ### Fixed
 
 - PGP: decrypt files encrypted to a key's encryption subkey (the normal gpg setup) and unwrap the compressed/literal packets around the data key

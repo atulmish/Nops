@@ -215,7 +215,9 @@ public class DataKeyResolverTests
         var shares = Nops.Core.Crypto.Shamir.Split(secret, numShares: 3, threshold: 2);
         var provider = new CountingMasterKey(new Dictionary<string, byte[]>
         {
-            ["e1"] = shares[0], ["e2"] = shares[1], ["e3"] = shares[2],
+            ["e1"] = shares[0],
+            ["e2"] = shares[1],
+            ["e3"] = shares[2],
         });
 
         var result = await Nops.Core.Keys.DataKeyResolver.ResolveAsync(

@@ -140,7 +140,7 @@ public class PgpMasterKey : IMasterKeyProvider
                 case PgpCompressedData compressed:
                     factory = new PgpObjectFactory(compressed.GetDataStream());
                     break;
-                // Skip one-pass signature / signature / marker packets.
+                    // Skip one-pass signature / signature / marker packets.
             }
         }
 

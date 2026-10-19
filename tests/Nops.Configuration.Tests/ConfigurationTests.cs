@@ -531,7 +531,7 @@ public class MultiFileOverlayTests
 /// <summary>
 /// End-to-end tests: load a real SOPS-encrypted fixture through AddSops().
 /// </summary>
-public class SopsConfigurationIntegrationTests
+public class SopsConfigurationFixtureTests
 {
     private static readonly string FixtureDir = Path.Combine(AppContext.BaseDirectory, "Fixtures");
 

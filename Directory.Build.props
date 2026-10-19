@@ -1,20 +1,30 @@
 <Project>
   <PropertyGroup>
-    <Version>1.0.0-preview.1</Version>
+    <Version>1.0.0-preview.2</Version>
     <Copyright>Copyright (c) Nops Contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/atulmish/Nops</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/atulmish/Nops</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <PackageReadme>README.md</PackageReadme>
-    <PackageIcon>build/Nops.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>Nops.png</PackageIcon>
     <PackageTags>sops;encryption;age;pgp;secrets;kms;configuration</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
-    <None Include="$(MSBuildThisFileDirectory)build/Nops.png" Pack="true" PackagePath="build/" Visible="false" />
+    <!-- A package with its own README.md (e.g. the KMS providers) ships that; others ship the repo README. -->
+    <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="\" Visible="false"
+          Condition="Exists('$(MSBuildProjectDirectory)/README.md')" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false"
+          Condition="!Exists('$(MSBuildProjectDirectory)/README.md')" />
+    <None Include="$(MSBuildThisFileDirectory)build/Nops.png" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
+
+  <!-- Deterministic, reproducible builds on CI (paths in PDBs normalised for SourceLink) -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
 
   <!-- Symbol packaging -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

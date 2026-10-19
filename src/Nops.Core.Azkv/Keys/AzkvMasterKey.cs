@@ -48,7 +48,8 @@ public class AzkvMasterKey : IMasterKeyProvider
     public string? KeyVersion { get; }
 
     /// <summary>
-    /// The encrypted data key share (base64-encoded).
+    /// Informational only: decryption uses the encrypted share read from the SOPS file
+    /// metadata, so this can be left empty.
     /// </summary>
     public string EncryptedShare { get; }
 
@@ -65,7 +66,7 @@ public class AzkvMasterKey : IMasterKeyProvider
     /// <summary>
     /// Creates a new Azure Key Vault master key provider.
     /// </summary>
-    public AzkvMasterKey(string vaultUrl, string keyName, string encryptedShare, string? keyVersion = null, KeyClient? client = null, TokenCredential? credential = null)
+    public AzkvMasterKey(string vaultUrl, string keyName, string encryptedShare = "", string? keyVersion = null, KeyClient? client = null, TokenCredential? credential = null)
     {
         VaultUrl = vaultUrl;
         KeyName = keyName;

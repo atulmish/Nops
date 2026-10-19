@@ -52,7 +52,8 @@ public class VaultTransitMasterKey : IMasterKeyProvider
     public string? Version { get; }
 
     /// <summary>
-    /// The encrypted data key share (base64-encoded).
+    /// Informational only: decryption uses the encrypted share read from the SOPS file
+    /// metadata, so this can be left empty.
     /// </summary>
     public string EncryptedShare { get; }
 
@@ -73,7 +74,7 @@ public class VaultTransitMasterKey : IMasterKeyProvider
         string address,
         string mountPath,
         string keyName,
-        string encryptedShare,
+        string encryptedShare = "",
         string? version = null,
         string? token = null,
         HttpClient? httpClient = null)
@@ -202,7 +203,8 @@ public class HckmsMasterKey : IMasterKeyProvider
     public string CryptoKey { get; }
 
     /// <summary>
-    /// The encrypted data key share (base64-encoded).
+    /// Informational only: decryption uses the encrypted share read from the SOPS file
+    /// metadata, so this can be left empty.
     /// </summary>
     public string EncryptedShare { get; }
 
@@ -219,7 +221,7 @@ public class HckmsMasterKey : IMasterKeyProvider
         string location,
         string keyRing,
         string cryptoKey,
-        string encryptedShare,
+        string encryptedShare = "",
         string? vaultToken = null)
     {
         ProjectId = projectId;

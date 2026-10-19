@@ -37,7 +37,8 @@ public class AwsKmsMasterKey : IMasterKeyProvider
     public string Arn { get; }
 
     /// <summary>
-    /// The encrypted data key share (base64-encoded).
+    /// Informational only: decryption uses the encrypted share read from the SOPS file
+    /// metadata, so this can be left empty.
     /// </summary>
     public string EncryptedShare { get; }
 
@@ -54,7 +55,7 @@ public class AwsKmsMasterKey : IMasterKeyProvider
     /// <summary>
     /// Creates a new AWS KMS master key provider.
     /// </summary>
-    public AwsKmsMasterKey(string arn, string encryptedShare, IReadOnlyList<KeyValuePair<string, string>>? context = null, IAmazonKeyManagementService? client = null)
+    public AwsKmsMasterKey(string arn, string encryptedShare = "", IReadOnlyList<KeyValuePair<string, string>>? context = null, IAmazonKeyManagementService? client = null)
     {
         Arn = arn;
         EncryptedShare = encryptedShare;

@@ -41,6 +41,13 @@ public sealed class SopsOptions
     /// Explicit master key providers (age, PGP, AWS KMS, GCP KMS, Azure KV, Vault).
     /// </summary>
     public IReadOnlyList<IMasterKeyProvider>? MasterKeys { get; set; }
+
+    /// <summary>
+    /// Also use the age identities the sops CLI would find: <c>SOPS_AGE_KEY</c>,
+    /// <c>SOPS_AGE_KEY_FILE</c> and the default <c>sops/age/keys.txt</c> in the user
+    /// config directory. Default <c>true</c>; set <c>false</c> to use only explicit keys.
+    /// </summary>
+    public bool UseSopsEnvironment { get; set; } = true;
 }
 
 /// <summary>
@@ -138,15 +145,20 @@ public static class SopsFile
         if (options.MasterKeys != null)
             providers.AddRange(options.MasterKeys);
 
-        // Age identities: Bech32 private keys or file paths containing secret keys.
+        // Age identities: Bech32 private keys or file paths containing secret keys,
+        // then the sops CLI's environment sources. Each distinct key is tried once.
+        var ageKeys = new HashSet<string>(StringComparer.Ordinal);
         if (options.AgeIdentities != null)
         {
             foreach (var identity in options.AgeIdentities)
-            {
-                foreach (var key in AgeIdentityLoader.Load(identity))
-                    providers.Add(new AgeMasterKey(recipient: null, privateKey: key));
-            }
+                ageKeys.UnionWith(AgeIdentityLoader.Load(identity));
         }
+
+        if (options.UseSopsEnvironment)
+            ageKeys.UnionWith(AgeIdentityLoader.LoadFromSopsEnvironment());
+
+        foreach (var key in ageKeys)
+            providers.Add(new AgeMasterKey(recipient: null, privateKey: key));
 
         // PGP private keys.
         if (options.PgpKeys != null)

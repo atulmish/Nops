@@ -33,9 +33,15 @@ public class SopsOptions
 
     /// <summary>
     /// Master key providers for cloud KMS (AWS, GCP, Azure, Vault).
-    /// Populated automatically from AgeIdentities/PgpKeys if not set.
+    /// AgeIdentities and PgpKeys are used in addition to these.
     /// </summary>
     public IReadOnlyList<IMasterKeyProvider>? MasterKeys { get; set; }
+
+    /// <summary>
+    /// Also use the age identities the sops CLI would find (<c>SOPS_AGE_KEY</c>,
+    /// <c>SOPS_AGE_KEY_FILE</c>, default <c>sops/age/keys.txt</c>). Default <c>true</c>.
+    /// </summary>
+    public bool UseSopsEnvironment { get; set; } = true;
 
     /// <summary>
     /// Whether to watch the file for changes and reload automatically.
