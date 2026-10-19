@@ -1,1 +1,7 @@
-{"big_unencrypted": 12345678901234567891, "exp_unencrypted": 1e19, "whole_unencrypted": 2.0, "i64_unencrypted": 9007199254740993, "secret": "s3"}
+{
+	"big_unencrypted": 12345678901234567000,
+	"exp_unencrypted": 10000000000000000000,
+	"whole_unencrypted": 2,
+	"i64_unencrypted": 9007199254740993,
+	"secret": "s3"
+}

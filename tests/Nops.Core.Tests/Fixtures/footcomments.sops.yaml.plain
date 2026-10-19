@@ -1,11 +1,11 @@
 a:
-  b: 1
-  # inner foot
+    b: 1
+    # inner foot
 # sops:enc
 c_unencrypted: hello
 hosts_unencrypted:
-  # primary
-  - a
-  - b
-  # trailing
+    # primary
+    - a
+    - b
+    # trailing
 e: plain

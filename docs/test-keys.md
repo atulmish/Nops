@@ -9,11 +9,9 @@ Test keys are stored in:
 ```
 tests/Nops.Core.Tests/Fixtures/
 ├── AGE-TEST-KEY.txt           # Age private identities (Bech32), TEST ONLY
+├── PGP-TEST-KEY.asc           # OpenPGP secret key (no passphrase), TEST ONLY
 └── README.md                  # Notes about the test-only keys
 ```
-
-> PGP fixtures use a separate test key that is not committed; those tests are
-> skipped locally unless the key is supplied. Age fixtures use `AGE-TEST-KEY.txt`.
 
 ## Security Rules
 
@@ -53,21 +51,29 @@ age-keygen -o key-A.txt
 
 ## PGP Test Key
 
-No PGP test key is committed to the repository. PGP fixtures, if added, must be
-generated with a locally generated test key and are not decrypted by the
-committed CI setup.
+`PGP-TEST-KEY.asc` is a TEST-ONLY OpenPGP key with no passphrase: an ed25519
+`[SC]` primary key plus a cv25519 `[E]` encryption subkey, so tests cover gpg
+encrypting the data key to the subkey rather than the primary key.
 
-Used for:
-- JSON format test fixtures (PGP-encrypted) - not currently committed
-- Testing PgpMasterKey decryption path
+- Primary fingerprint: `86498AF4273A49F7D96FF1A62C9F3DFF82C80F58`
+- Used by `pgp.sops.yaml` and the `PgpMasterKey` decryption tests
+- CI imports it with `gpg --batch --import` before verifying fixtures
 
 ### Generating a New PGP Test Key
 
+Use a throwaway keyring so the key never touches your own:
+
 ```bash
-gpg --full-generate-key  # Choose RSA 4096, no expiry
-gpg --armor --export-secret-keys test@example.com > pgp-test-key.asc
-gpg --delete-secret-and-public-key test@example.com  # Remove from keyring
+export GNUPGHOME="$(mktemp -d)"
+gpg --batch --pinentry-mode loopback --passphrase '' \
+  --quick-gen-key "Nops Test (TEST-ONLY) <test@nops.invalid>" ed25519 sign never
+FP=$(gpg --list-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')
+gpg --batch --pinentry-mode loopback --passphrase '' --quick-add-key "$FP" cv25519 encr never
+gpg --armor --export-secret-keys "$FP" > PGP-TEST-KEY.asc
+sops -e --pgp "$FP" pgp.yaml > pgp.sops.yaml
 ```
+
+Update `PgpTestFingerprint` in `SopsFileIntegrationTests.cs` after rotating.
 
 ## Fixture Files
 
@@ -85,6 +91,12 @@ Encrypted fixtures use these keys:
 | `multi-keygroup.sops.yaml` | Age (2-of-3) | Shamir secret sharing |
 | `mac-only-encrypted.sops.yaml` | Age | MAC-only-encrypted vector |
 | `comments.sops.yaml` | Age | Comment handling (sops#2243) |
+| `anchors.sops.yaml` | Age | YAML anchors/aliases over unencrypted values |
+| `footcomments.sops.yaml` | Age | Block-end comments, comments inside sequences |
+| `ini-default-section.sops.ini` | Age | INI keys before any section, backslashes in values |
+| `numbers.sops.json` | Age | JSON integers beyond 2^53 / the int64 range |
+| `special-floats.sops.yaml` | Age | YAML `.nan` / `.inf` |
+| `pgp.sops.yaml` | PGP | Data key encrypted to the PGP encryption subkey |
 
 ## CI Verification
 

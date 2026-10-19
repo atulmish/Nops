@@ -80,6 +80,8 @@ jobs:
           # include the committed keys (optionally alongside a CI-provided key).
           committed=$(grep AGE-SECRET-KEY tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt | tr '\n' ' ')
           export SOPS_AGE_KEY="${SOPS_TEST_AGE_KEY:-} $committed"
+          # pgp.sops.yaml is encrypted to the committed TEST-ONLY PGP key.
+          gpg --batch --import tests/Nops.Core.Tests/Fixtures/PGP-TEST-KEY.asc
           fail=0
           for f in tests/Nops.Core.Tests/Fixtures/*.sops.*; do
             plain="${f}.plain"
