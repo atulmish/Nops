@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace Nops.Core.Crypto;
 
@@ -39,29 +40,15 @@ public static class Shamir
         if (b == 0) throw new DivideByZeroException();
         if (a == 0) return 0;
 
-        // Find inverse of b using extended Euclidean algorithm
-        var inv = GfInverse(b);
-        return GfMul(a, inv);
+        return GfMul(a, GfInverse(b));
     }
 
+    /// <summary>
+    /// Invert a non-zero element in GF(2^8): x^-1 = x^254 (multiplicative group order 255).
+    /// </summary>
     private static byte GfInverse(byte b)
     {
-        // In GF(2^8), x^-1 = x^254 (since the multiplicative group has order 255)
-        // Use square-and-multiply for efficiency
         if (b == 0) throw new DivideByZeroException();
-
-        // Compute b^254 using binary exponentiation
-        var result = b;
-        // 254 in binary is 11111110
-        for (int i = 0; i < 7; i++)
-        {
-            result = GfMul(result, result); // Square
-        }
-        result = GfMul(result, b); // Multiply by b once more = b^255... wait that's wrong
-
-        // Actually: x^254 = x^(128+64+32+16+8+4+2) = ((((x^2)^2)^2...) * x
-        // Let me use a simpler approach: repeated squaring to get x^128, then multiply appropriately
-
         return GfPow(b, 254);
     }
 
@@ -84,6 +71,8 @@ public static class Shamir
     /// <summary>
     /// Split a secret into n shares with threshold k.
     /// Any k shares can reconstruct the secret; fewer cannot.
+    /// Uses a cryptographically secure random number generator for the polynomial
+    /// coefficients.
     /// </summary>
     public static byte[][] Split(byte[] secret, int numShares, int threshold)
     {
@@ -102,15 +91,16 @@ public static class Shamir
             for (int j = 0; j < numShares; j++)
             {
                 if (shares[j] == null)
-                    shares[j] = new byte[secret.Length];
+                    shares[j] = new byte[secret.Length + 1];
                 shares[j][i] = shareBytes[j];
             }
         }
 
-        // Set the x-coordinate (index) for each share
+        // Store the x-coordinate (index) as the last byte of each share.
+        // The representation of each share is {y1, y2, .., yN, x}.
         for (int i = 0; i < numShares; i++)
         {
-            shares[i] = PrependIndex(shares[i], (byte)(i + 1));
+            shares[i][secret.Length] = (byte)(i + 1);
         }
 
         return shares;
@@ -118,14 +108,24 @@ public static class Shamir
 
     /// <summary>
     /// Combine shares to reconstruct the secret.
-    /// Requires at least 'threshold' shares.
+    /// Requires at least two shares; all shares must have the same length.
     /// </summary>
     public static byte[] Combine(byte[][] shares)
     {
-        if (shares == null || shares.Length == 0)
-            throw new ArgumentException("Cannot combine empty shares");
+        if (shares == null || shares.Length < 2)
+            throw new ArgumentException("Less than two shares cannot be used to reconstruct the secret");
 
-        var secretLength = shares[0].Length > 1 ? shares[0].Length - 1 : shares[0].Length;
+        var firstLen = shares[0].Length;
+        if (firstLen < 2)
+            throw new ArgumentException("Shares must be at least two bytes");
+
+        foreach (var share in shares)
+        {
+            if (share.Length != firstLen)
+                throw new ArgumentException("All shares must be the same length");
+        }
+
+        var secretLength = firstLen - 1;
         var result = new byte[secretLength];
 
         // Combine each byte position using Lagrange interpolation
@@ -143,9 +143,11 @@ public static class Shamir
         var coeffs = new byte[threshold];
         coeffs[0] = secret;
 
-        var rand = new Random();
+        // Cryptographically secure randomness for polynomial coefficients.
+        var randBytes = new byte[threshold - 1];
+        RandomNumberGenerator.Fill(randBytes);
         for (int i = 1; i < threshold; i++)
-            coeffs[i] = (byte)(rand.Next() & 0xFF);
+            coeffs[i] = randBytes[i - 1];
 
         // Evaluate polynomial at points x=1, x=2, ..., x=numShares
         var result = new byte[numShares];
@@ -178,8 +180,8 @@ public static class Shamir
 
         for (int i = 0; i < threshold; i++)
         {
-            xs[i] = shares[i][0]; // First byte is the index
-            ys[i] = shares[i][valueIndex + 1]; // Value is at index+1
+            xs[i] = shares[i][shares[i].Length - 1]; // Last byte is the index
+            ys[i] = shares[i][valueIndex]; // y-values precede the index byte
         }
 
         // Lagrange interpolation at x=0
@@ -212,13 +214,5 @@ public static class Shamir
         }
 
         return GfDiv(num, den);
-    }
-
-    private static byte[] PrependIndex(byte[] data, byte index)
-    {
-        var result = new byte[data.Length + 1];
-        result[0] = index;
-        Array.Copy(data, 0, result, 1, data.Length);
-        return result;
     }
 }

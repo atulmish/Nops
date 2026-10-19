@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using Nops.Core.Stores;
 
 namespace Nops.Core.Stores;
 
 /// <summary>
-/// Store for JSON files. Parses JSON into ordered TreeBranches and extracts .sops metadata.
+/// Store for JSON files. Parses JSON into ordered TreeBranches (preserving nested
+/// objects and arrays) and extracts .sops metadata.
 /// </summary>
 public static class JsonStore
 {
@@ -18,84 +20,70 @@ public static class JsonStore
         var jsonDoc = JsonDocument.Parse(fileBytes);
         var root = jsonDoc.RootElement;
 
-        var branches = ParseElement(root);
-        var metadata = ExtractMetadata(branches);
+        var branch = ParseJson(root) as TreeBranch
+            ?? throw new InvalidOperationException("JSON root is not an object");
 
-        return new SopsTree(branches, metadata, filePath);
+        var metadata = ExtractMetadata(branch);
+
+        var sopsKeys = branch.Count(item => item.Key is string key && key == "sops");
+        if (sopsKeys > 1)
+            throw new SopsMetadataException("Found more than one 'sops' key at the top level of the file.");
+
+        // The .sops key is metadata and must not appear in the decrypted data tree.
+        branch.RemoveAll(item => item.Key is string key && key == "sops");
+
+        return new SopsTree(new[] { branch }, metadata, filePath);
     }
 
-    private static List<TreeBranch> ParseElement(JsonElement element)
+    /// <summary>
+    /// Parse a JSON element into an ordered tree object (TreeBranch / scalar).
+    /// </summary>
+    public static object? ParseJson(JsonElement element)
     {
-        var branches = new List<TreeBranch>();
-
-        if (element.ValueKind == JsonValueKind.Object)
+        switch (element.ValueKind)
         {
-            var branch = new TreeBranch();
-            foreach (var property in element.EnumerateObject())
-            {
-                var value = ParseJsonValue(property.Value);
-                branch.Add(new TreeItem(property.Name, value));
-            }
-            branches.Add(branch);
-        }
-        else if (element.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in element.EnumerateArray())
-            {
-                branches.AddRange(ParseElement(item));
-            }
-        }
-
-        return branches;
-    }
-
-    private static object? ParseJsonValue(JsonElement element)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number => element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            JsonValueKind.Object => null, // Nested objects walked recursively
-            JsonValueKind.Array => null, // Arrays walked recursively
-            _ => null
-        };
-    }
-
-    private static SopsMetadata ExtractMetadata(List<TreeBranch> branches)
-    {
-        if (branches.Count == 0 || branches[0].Count == 0)
-            throw new InvalidOperationException("No branches found");
-
-        var firstBranch = branches[0]!;
-        var sopsEntry = firstBranch.FirstOrDefault(item =>
-            item.Key?.ToString() == "sops");
-
-        if (sopsEntry.Value! is string sopsStr && !string.IsNullOrEmpty(sopsStr) && sopsEntry.Key != null)
-        {
-            // .sops might be a nested object in JSON - parse it
-            try
-            {
-                using var doc = JsonDocument.Parse(sopsStr);
-                var dict = new Dictionary<string, object>();
-                foreach (var prop in doc.RootElement.EnumerateObject())
+            case JsonValueKind.Object:
                 {
-                    dict[prop.Name] = prop.Value.ToString();
+                    var branch = new TreeBranch(isSequence: false);
+                    foreach (var property in element.EnumerateObject())
+                        branch.Add(new TreeItem(property.Name, ParseJson(property.Value)));
+                    return branch;
                 }
-                return SopsMetadataParser.Parse(dict)!;
-            }
-            catch
-            {
-                // If parsing fails, return empty metadata
-            }
+            case JsonValueKind.Array:
+                {
+                    var branch = new TreeBranch(isSequence: true);
+                    var index = 0;
+                    foreach (var item in element.EnumerateArray())
+                        branch.Add(new TreeItem(index++, ParseJson(item)));
+                    return branch;
+                }
+            case JsonValueKind.String:
+                return element.GetString();
+            case JsonValueKind.Number:
+                {
+                    // Like sops: int64 when the literal fits, otherwise float64. Casting a
+                    // whole double to long would lose precision or saturate past 2^63.
+                    if (element.TryGetInt64(out var l))
+                        return l;
+                    return element.GetDouble();
+                }
+            case JsonValueKind.True:
+                return true;
+            case JsonValueKind.False:
+                return false;
+            case JsonValueKind.Null:
+            default:
+                return null;
         }
+    }
 
-        return new SopsMetadata(
-            null, Array.Empty<AgeEntry>(), Array.Empty<PgpEntry>(),
-            Array.Empty<object>(), Array.Empty<object>(), Array.Empty<object>(),
-            Array.Empty<object>(), Array.Empty<object>(),
-            0, null, null, null, null, null, null, false, null, null);
+    private static SopsMetadata ExtractMetadata(TreeBranch root)
+    {
+        var sopsItem = root.FirstOrDefault(item => item.Key is string key && key == "sops");
+
+        if (sopsItem?.Value is TreeBranch sopsBranch)
+            return SopsMetadataParser.Parse(TreeConverter.ToDictionary(sopsBranch));
+
+        return SopsMetadataParser.Empty();
     }
 }

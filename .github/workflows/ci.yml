@@ -15,9 +15,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         run: dotnet restore Nops.slnx
@@ -37,9 +35,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         run: dotnet restore Nops.slnx
@@ -77,12 +73,13 @@ jobs:
 
       - name: Verify fixtures match plaintext
         env:
-          SOPS_AGE_KEY: ${{ secrets.SOPS_TEST_AGE_KEY }}
+          SOPS_TEST_AGE_KEY: ${{ secrets.SOPS_TEST_AGE_KEY }}
         run: |
-          if [ -z "$SOPS_AGE_KEY" ]; then
-            echo "SOPS_TEST_AGE_KEY secret not set; using the committed test key"
-            export SOPS_AGE_KEY=$(grep AGE-SECRET-KEY tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt)
-          fi
+          # Fixtures are generated with the committed TEST-ONLY keys. The
+          # multi-keygroup fixture requires two of the three identities, so always
+          # include the committed keys (optionally alongside a CI-provided key).
+          committed=$(grep AGE-SECRET-KEY tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt | tr '\n' ' ')
+          export SOPS_AGE_KEY="${SOPS_TEST_AGE_KEY:-} $committed"
           fail=0
           for f in tests/Nops.Core.Tests/Fixtures/*.sops.*; do
             plain="${f}.plain"

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
 using Nops.Configuration;
 using Xunit;
 
@@ -59,6 +60,70 @@ public class SopsOptionsTests
 
         Assert.Single(resolved);
         Assert.IsType<Nops.Core.Keys.AgeMasterKey>(resolved[0]);
+    }
+
+    [Fact]
+    public void ResolveMasterKeys_PathToAgeIdentityFile_LoadsEverySecretKey()
+    {
+        var keyFile = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllLines(keyFile, new[]
+            {
+                "# TEST-ONLY identities",
+                "# public key: age1qexample",
+                "AGE-SECRET-KEY-1AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "",
+                "AGE-SECRET-KEY-1BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+                "AGE-SECRET-KEY-1CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            });
+
+            var options = new SopsOptions
+            {
+                AgeIdentities = new[] { keyFile }
+            };
+
+            var resolved = options.ResolveMasterKeys();
+
+            // Comments, blank lines and the public-key line are ignored.
+            Assert.Equal(3, resolved.Count);
+            Assert.All(resolved, k => Assert.IsType<Nops.Core.Keys.AgeMasterKey>(k));
+        }
+        finally
+        {
+            File.Delete(keyFile);
+        }
+    }
+
+    [Fact]
+    public void ResolveMasterKeys_AgeIdentityFileMixedWithInlineKey_LoadsAll()
+    {
+        var keyFile = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllLines(keyFile, new[]
+            {
+                "AGE-SECRET-KEY-1AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "AGE-SECRET-KEY-1BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            });
+
+            var options = new SopsOptions
+            {
+                AgeIdentities = new[]
+                {
+                    "AGE-SECRET-KEY-1CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                    keyFile,
+                }
+            };
+
+            var resolved = options.ResolveMasterKeys();
+
+            Assert.Equal(3, resolved.Count);
+        }
+        finally
+        {
+            File.Delete(keyFile);
+        }
     }
 
     [Fact]
@@ -460,5 +525,96 @@ public class MultiFileOverlayTests
 
         var keys = new[] { "a", "b" };
         Assert.Equal(2, keys.Length);
+    }
+}
+
+/// <summary>
+/// End-to-end tests: load a real SOPS-encrypted fixture through AddSops().
+/// </summary>
+public class SopsConfigurationIntegrationTests
+{
+    private static readonly string FixtureDir = Path.Combine(AppContext.BaseDirectory, "Fixtures");
+
+    private static string LoadAgeSecretKey()
+    {
+        var keyFile = Path.Combine(FixtureDir, "AGE-TEST-KEY.txt");
+        return File.ReadAllLines(keyFile).First(l => l.StartsWith("AGE-SECRET-KEY-", StringComparison.Ordinal)).Trim();
+    }
+
+    [Fact]
+    public void AddSops_LoadsRealEncryptedFile()
+    {
+        var filePath = Path.Combine(FixtureDir, "secrets.sops.yaml");
+        var ageKey = LoadAgeSecretKey();
+
+        var builder = new ConfigurationBuilder();
+        builder.AddSops(filePath, opts => opts.AgeIdentities = new[] { ageKey });
+        var config = builder.Build();
+
+        Assert.Equal("hello world", config["myapp1"]);
+        Assert.Equal("admin", config["app2:db:user"]);
+        Assert.Equal("s3cret!", config["app2:db:password"]);
+        Assert.Equal("3.14", config["number"]);
+        Assert.Equal("True", config["somebooleans:0"]);
+        Assert.Equal("deep-secret", config["this:is:a:nested:value"]);
+    }
+
+    [Fact]
+    public void AddSops_LoadsRealEncryptedFile_FromAgeIdentityFilePath()
+    {
+        var filePath = Path.Combine(FixtureDir, "secrets.sops.yaml");
+        var keyFilePath = Path.Combine(FixtureDir, "AGE-TEST-KEY.txt");
+
+        var builder = new ConfigurationBuilder();
+        // Point AgeIdentities at the file itself, not at the key string.
+        builder.AddSops(filePath, opts => opts.AgeIdentities = new[] { keyFilePath });
+        var config = builder.Build();
+
+        Assert.Equal("hello world", config["myapp1"]);
+        Assert.Equal("admin", config["app2:db:user"]);
+    }
+
+    [Fact]
+    public void AddSops_WithWatchForChanges_ReReadsModifiedFile_WithoutLeakingWatchers()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "nops-watch-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var sourcePath = Path.Combine(tempDir, "watch.sops.yaml");
+        var encrypted = File.ReadAllBytes(Path.Combine(FixtureDir, "secrets.sops.yaml"));
+        File.WriteAllBytes(sourcePath, encrypted);
+
+        try
+        {
+            var keyFilePath = Path.Combine(FixtureDir, "AGE-TEST-KEY.txt");
+            var builder = new ConfigurationBuilder();
+            builder.AddSops(sourcePath, opts =>
+            {
+                opts.AgeIdentities = new[] { keyFilePath };
+                opts.WatchForChanges = true;
+                opts.ReloadInterval = TimeSpan.FromMilliseconds(50);
+            });
+            var config = builder.Build();
+
+            Assert.Equal("hello world", config["myapp1"]);
+
+            var changed = 0;
+            using var registration = ChangeToken.OnChange(
+                config.GetReloadToken,
+                () => Interlocked.Increment(ref changed));
+
+            // Rewrite the same (valid) encrypted content to trigger a reload.
+            File.WriteAllBytes(sourcePath, encrypted);
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (Volatile.Read(ref changed) == 0 && DateTime.UtcNow < deadline)
+                Thread.Sleep(50);
+
+            Assert.True(changed > 0, "expected a reload after the file changed");
+            // Value is still correct after the reload (no leaked/duplicated providers).
+            Assert.Equal("hello world", config["myapp1"]);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
+        }
     }
 }

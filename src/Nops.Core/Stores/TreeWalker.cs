@@ -6,7 +6,8 @@ namespace Nops.Core.Stores;
 
 /// <summary>
 /// Tree walker for SOPS encrypted files. Handles path computation, AAD generation,
-/// and shouldBeEncrypted logic per the SOPS specification.
+/// and shouldBeEncrypted logic per the SOPS specification (exact port of
+/// walkBranch/walkSlice/walkValue/shouldBeEncrypted from sops.go).
 /// </summary>
 public static class TreeWalker
 {
@@ -22,8 +23,9 @@ public static class TreeWalker
 
     /// <summary>
     /// Determine whether a value at the given path should be encrypted.
-    /// Checks unencrypted_suffix, encrypted_suffix, unencrypted_regex, encrypted_regex,
-    /// and comment regexes against path elements and comments stack.
+    /// Exact port of tree.shouldBeEncrypted: rules apply sequentially and later
+    /// rules override earlier ones. Comment regexes apply to values as well as
+    /// comments (via the comments stack), not just to comment nodes.
     /// </summary>
     public static bool ShouldBeEncrypted(
         SopsMetadata metadata,
@@ -31,93 +33,105 @@ public static class TreeWalker
         IReadOnlyList<IReadOnlyList<string>> commentsStack,
         bool isComment)
     {
-        // Check unencrypted_suffix: any path element with this suffix → skip encryption
+        // Static Regex.IsMatch reuses the framework's regex cache, so each pattern is
+        // parsed once rather than once per leaf.
+        var encrypted = true;
+
         if (!string.IsNullOrEmpty(metadata.UnencryptedSuffix))
         {
             foreach (var element in path)
             {
                 if (element.EndsWith(metadata.UnencryptedSuffix!, StringComparison.Ordinal))
-                    return false;
+                {
+                    encrypted = false;
+                    break;
+                }
             }
         }
 
-        // Check encrypted_suffix: default is to skip unless any element matches
         if (!string.IsNullOrEmpty(metadata.EncryptedSuffix))
         {
-            bool hasMatch = false;
+            encrypted = false;
             foreach (var element in path)
             {
                 if (element.EndsWith(metadata.EncryptedSuffix!, StringComparison.Ordinal))
                 {
-                    hasMatch = true;
+                    encrypted = true;
                     break;
                 }
             }
-            if (!hasMatch)
-                return false;
         }
 
-        // Check unencrypted_regex: per-element regex match → skip encryption
         if (!string.IsNullOrEmpty(metadata.UnencryptedRegex))
         {
-            var regex = new Regex(metadata.UnencryptedRegex);
+            var pattern = metadata.UnencryptedRegex!;
             foreach (var element in path)
             {
-                if (regex.IsMatch(element))
-                    return false;
-            }
-        }
-
-        // Check encrypted_regex: per-element regex match → encrypt only matching elements
-        if (!string.IsNullOrEmpty(metadata.EncryptedRegex))
-        {
-            var regex = new Regex(metadata.EncryptedRegex);
-            bool hasMatch = false;
-            foreach (var element in path)
-            {
-                if (regex.IsMatch(element))
+                if (Regex.IsMatch(element, pattern))
                 {
-                    hasMatch = true;
+                    encrypted = false;
                     break;
                 }
             }
-            if (!hasMatch)
-                return false;
         }
 
-        // Check comment regexes (only for comment nodes)
-        if (isComment && commentsStack.Count > 0)
+        if (!string.IsNullOrEmpty(metadata.EncryptedRegex))
         {
-            // encrypted_comment_regex: skip the comment line that triggered the match
-            if (!string.IsNullOrEmpty(metadata.EncryptedCommentRegex))
+            encrypted = false;
+            var pattern = metadata.EncryptedRegex!;
+            foreach (var element in path)
             {
-                var regex = new Regex(metadata.EncryptedCommentRegex);
-                foreach (var commentGroup in commentsStack)
+                if (Regex.IsMatch(element, pattern))
                 {
-                    foreach (var comment in commentGroup)
-                    {
-                        if (regex.IsMatch(comment))
-                            return false;
-                    }
+                    encrypted = true;
+                    break;
                 }
             }
+        }
 
-            // unencrypted_comment_regex: skip comments matching this pattern
-            if (!string.IsNullOrEmpty(metadata.UnencryptedCommentRegex))
+        if (!string.IsNullOrEmpty(metadata.UnencryptedCommentRegex))
+        {
+            var pattern = metadata.UnencryptedCommentRegex!;
+            foreach (var commentGroup in commentsStack)
             {
-                var regex = new Regex(metadata.UnencryptedCommentRegex);
-                foreach (var commentGroup in commentsStack)
+                var matched = false;
+                foreach (var comment in commentGroup)
                 {
-                    foreach (var comment in commentGroup)
+                    if (Regex.IsMatch(comment, pattern))
                     {
-                        if (regex.IsMatch(comment))
-                            return false;
+                        encrypted = false;
+                        matched = true;
+                        break;
+                    }
+                }
+                if (matched)
+                    break;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(metadata.EncryptedCommentRegex))
+        {
+            var stackCount = commentsStack.Count;
+            var lastCount = stackCount > 0 ? commentsStack[stackCount - 1].Count : 0;
+            encrypted = false;
+            var pattern = metadata.EncryptedCommentRegex!;
+            for (int i = 0; i < stackCount && !encrypted; i++)
+            {
+                for (int j = 0; j < commentsStack[i].Count; j++)
+                {
+                    // The comment line itself which matches the regex is not
+                    // encrypted; only values/comments after it are.
+                    if (isComment && i == stackCount - 1 && j == lastCount - 1)
+                        continue;
+                    if (Regex.IsMatch(commentsStack[i][j], pattern))
+                    {
+                        encrypted = true;
+                        break;
                     }
                 }
             }
         }
 
-        // Default: encrypt
-        return true;
+        return encrypted;
     }
 }

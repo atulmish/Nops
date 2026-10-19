@@ -1,0 +1,19 @@
+db_password: ENC[AES256_GCM,data:ZeLyBlpd+8NEqw==,iv:f48X9skL2O99t97rb0iM9Efc2djlIYbMNs43Ao44bIw=,tag:/dNVTjsIEOjYmT5kgK6q8g==,type:str]
+port_unencrypted: 5432
+sops:
+    lastmodified: "2026-10-19T19:29:20Z"
+    mac: ENC[AES256_GCM,data:Pq7O7tvberdSV61aDS5cX0ij3uT5k3rumhd/AE6opyf8C95uToGMcAScLQIIkLChHKyxIQ/CH7J+8c2flC7AOU1Xz8t2BHZtU4O/GUWs6YK+9JCR9akQCJYvY7qZrYR2jJ2K6GDh1UnhR9GwFttUdjviQoF5bCJgE+AW2EkNwfc=,iv:nnk2sDJEJbJ0L/qbFTfPxAL2HlqP56fC+rq/wDUgFb0=,tag:rcfUTQiKw8SJ59eMKku71Q==,type:str]
+    pgp:
+        - created_at: "2026-10-19T19:29:20Z"
+          enc: |-
+            -----BEGIN PGP MESSAGE-----
+
+            hF4DuFuVj3YJKqMSAQdAlEC10dnbGP/zlxQ/FAAWee7SWZrScA7I3C9Kkn5PcxEw
+            4VUndus7DSI/iUN7srj90PGGYbZgGfqgZ4pFJ8WxVHD488sw1knn/v62XfjGhUZe
+            0l4BJsEow06dxNdZJTcnHusAh4xwKxSgqZxQpfmezmj403nDxjleKNBxDikgnLbG
+            MpQRTSQ9q6GACwZ4HAtt+nUUoGknbW0fpW4bqVQqoSeNgdFcARqS2BCQ1AxUqBOl
+            =lzSs
+            -----END PGP MESSAGE-----
+          fp: 86498AF4273A49F7D96FF1A62C9F3DFF82C80F58
+    unencrypted_suffix: _unencrypted
+    version: 3.13.3

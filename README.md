@@ -32,7 +32,8 @@ using Nops.Core;
 var options = new SopsOptions
 {
     FilePath = "secrets.sops.yaml",
-    AgeIdentities = new[] { File.ReadAllText("age-key.txt") },
+    // Bech32 keys ("AGE-SECRET-KEY-...") or paths to identity files
+    AgeIdentities = new[] { "age-key.txt" },
 };
 
 // Flattened key-value pairs ("a:b:c" for nested maps)

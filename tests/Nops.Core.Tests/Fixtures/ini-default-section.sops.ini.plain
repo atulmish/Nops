@@ -1,0 +1,6 @@
+name = top-secret
+path_unencrypted = C:\new\dir
+; a comment
+[db]
+user = admin
+multi = line1\nline2

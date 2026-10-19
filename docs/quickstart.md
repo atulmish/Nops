@@ -42,7 +42,7 @@ var dict = await SopsFile.DecryptToDictionaryAsync(fileBytes, "yaml", options);
 Console.WriteLine(dict["app:db:password"]);
 
 // Option 2: Get typed object
-var config = await SopsFile.DeserializeAsync<MyConfig>(fileBytes, "yaml", options);
+var config = await SopsFile.DecryptAsync<MyConfig>(fileBytes, "yaml", options);
 Console.WriteLine(config.Database.Password);
 
 // Option 3: Get ordered tree (for round-trip edit + re-encrypt later)

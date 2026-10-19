@@ -56,38 +56,44 @@ public class SopsConfigurationProvider : ConfigurationProvider
     /// </summary>
     public override void Load()
     {
-        var ct = CancellationToken.None;
-        var fileBytes = ReadFile();
-
-        // Use custom decrypt callback if provided
-        if (_options.DecryptCallback != null)
-        {
-            var data = _options.DecryptCallback(fileBytes, _fileKind, ct).GetAwaiter().GetResult();
-            Data.Clear();
-            foreach (var kvp in data)
-            {
-                Data[kvp.Key] = kvp.Value;
-            }
-            return;
-        }
-
-        // Use SopsFile for standard decryption
         try
         {
-            var decryptedData = DecryptWithSopsFile(fileBytes, _fileKind, ct).GetAwaiter().GetResult();
-
-            Data.Clear();
-            foreach (var kvp in decryptedData)
-            {
-                Data[kvp.Key] = kvp.Value;
-            }
+            Reload();
         }
         catch (Exception ex) when (_options.FileNotFoundMode == FileNotFoundMode.WarnAndContinue || _options.Optional)
         {
             // Log warning but don't throw
             System.Diagnostics.Debug.WriteLine($"SOPS configuration load failed: {ex.Message}");
-            Data.Clear();
+            Data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         }
+    }
+
+    /// <summary>
+    /// Read, decrypt and apply the file contents to <see cref="ConfigurationProvider.Data"/>.
+    /// Shared by <see cref="Load"/> and the file watcher so reloads never spin up a
+    /// second provider (and thus a second watcher).
+    /// </summary>
+    private void Reload()
+    {
+        var ct = CancellationToken.None;
+        var fileBytes = ReadFile();
+
+        IReadOnlyDictionary<string, string> decryptedData;
+
+        // Use custom decrypt callback if provided
+        if (_options.DecryptCallback != null)
+            decryptedData = _options.DecryptCallback(fileBytes, _fileKind, ct).GetAwaiter().GetResult();
+        else
+            decryptedData = DecryptWithSopsFile(fileBytes, _fileKind, ct).GetAwaiter().GetResult();
+
+        // Build the new data off to the side and publish it with a single reference
+        // assignment: ConfigurationProvider.TryGet reads Data without locking, so it must
+        // never observe a cleared or half-filled dictionary during a watcher reload.
+        var data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kvp in decryptedData)
+            data[kvp.Key] = kvp.Value;
+
+        Data = data;
     }
 
     /// <summary>
@@ -103,7 +109,9 @@ public class SopsConfigurationProvider : ConfigurationProvider
         var options = new Nops.Core.SopsOptions
         {
             FilePath = _filePath,
-            AgeIdentities = _options.AgeIdentities,
+            // ResolveMasterKeys already turns AgeIdentities into providers unless explicit
+            // MasterKeys were supplied; passing them again would try every identity twice.
+            AgeIdentities = _options.MasterKeys != null ? _options.AgeIdentities : null,
             MasterKeys = masterKeys
         };
 
@@ -166,23 +174,7 @@ public class SopsConfigurationProvider : ConfigurationProvider
         {
             try
             {
-                var newData = new Dictionary<string, string>();
-
-                // Re-load the file
-                var provider = new SopsConfigurationProvider(_options);
-                provider.Load();
-
-                // Update configuration atomically
-                lock (this)
-                {
-                    Data.Clear();
-                    foreach (var kvp in provider.Data)
-                    {
-                        Data[kvp.Key] = kvp.Value;
-                    }
-                }
-
-                // Trigger reload event
+                Reload();
                 OnReload();
             }
             catch

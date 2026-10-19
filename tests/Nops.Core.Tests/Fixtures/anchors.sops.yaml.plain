@@ -1,0 +1,5 @@
+defaults_unencrypted: &d
+  host: db.local
+  port: 5432
+prod_unencrypted: *d
+password: hunter2

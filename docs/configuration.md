@@ -153,7 +153,7 @@ When the file changes:
 |---|---|---|
 | File not found | Throw `FileNotFoundException` | Empty config (no values) |
 | MAC mismatch | Throw `MacMismatchException` | Empty config (no values) |
-| Decryption failure | Throw `SopsKeyException` | Empty config (no values) |
+| Decryption failure | Throw `InvalidOperationException` / `MacMismatchException` | Empty config (no values) |
 | File too large | Throw `InvalidOperationException` | N/A |
 
 Customize with `FileNotFoundMode`:

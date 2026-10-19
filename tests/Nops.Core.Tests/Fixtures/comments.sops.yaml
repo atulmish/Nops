@@ -1,21 +1,22 @@
-# This is a public comment
+# sops_secret
+secret_value: ENC[AES256_GCM,data:VYRIFeHwgdUGTsk=,iv:OS1qRIlBj0tzJgT+wfdrxEkJYf274rzuGe8Zlun0eUY=,tag:ADzdmDaKCQvlJQzSYVRGQA==,type:str]
+# public_comment
 public_value: visible
-# sops_encrypted_comment: this should be encrypted
-secret_value: hidden-data
-# another_public_comment
 more_secret: also-hidden
+# sops_secret2
+another_secret: ENC[AES256_GCM,data:CPDAJrUGInEDoNY=,iv:8CFoFvSqRBU2gzgLJlgYvsoVRhQ1CmN0tKaBkIDbxkk=,tag:5EL6xQCMkOcbCPRtJm5pGA==,type:str]
 sops:
     age:
         - enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBPeWw3bFp3Qkt6OTVnckpj
-            K3NqQ3JDMDVwMytncXlDMUJHOVFtcGVIcm1zClNjVTgwbUtVRERpOXdKRS9YLzdw
-            bW1oZEVkWGlleU5hTVA3MTVmcFl1bzQKLS0tIHV2REFRWjB3b0FBb3AzMC9zakZZ
-            SnBSQm1RLzgwcWFnMUtaVUF4Qm9uK00K+f+GvlhfXni1JA2f8q7ajzfujGpcXuDa
-            eUyUOzZGLLiRXo4SnrElgYNML/uqdTJUCpfHaCooDxFjD+sE1DOlAA==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA5WWVFS2g5ZlluQlZNUk5w
+            S3EvT3BLd2Y0d0N5Nmpob3RBN0oyZFFZVld3CmNLemc0bjg0eUJCNzNtTXZmUndH
+            T3Zkd045aG9xa0pGVWdwc2JlbmdRVWcKLS0tIENiWmxvWGxkR1cvS2MrMDJlQ25l
+            OGhEb3lPWnYrUkNtcDhQS1lYbHlSSFEKzpnl7r/8e4fSpa9Ilr+H5N3i1+6DFS1l
+            PYb7kKatcVzd9NU6t+aLMi30OM9uvPqXZYQQYSfw3k/4gTAZbFdJDA==
             -----END AGE ENCRYPTED FILE-----
           recipient: age1q4rff6x85y5jnatyphqst5h83njnnv9whguftdutr7t5x0g5pcgs6z9edz
-    encrypted_comment_regex: ^sops_
-    lastmodified: "2026-10-02T16:57:03Z"
-    mac: ENC[AES256_GCM,data:RcTV4l1m2MwWMio/MoBhEITBDdh2UTrpcUEIFmXr5ta0xTwPwiVDCMF3F8DoSL0th8Ua13ASKrogXEfwVkaw5lJ3od3kKnA5TplXtIz13L9Z7aPmh8hZCoGZ1aKmTgpU4/oh8aCGdx1jcDsDGpJbMZFKd6Qm5YoqgcKE8AG4TMQ=,iv:EaOsLmDDWazpR5WDokhUMoZ+hFB/cKaqcr450XcZT0E=,tag:wOye7Z2CrsGxxVOyeGC9rg==,type:str]
+    encrypted_comment_regex: ^ sops_
+    lastmodified: "2026-10-15T14:25:48Z"
+    mac: ENC[AES256_GCM,data:YH98eYDVpz/wz6/ARZr6tf7xwnrcl01K/U8JecxJlmY1mTJUpEQRnpOc9Kr1O7nl2+74imqGbXQBRVpdbJKxaSdstAtmaaP0vHMOhB0hU53aE1axWjSKzMXKQOU5k9m53b85wpQFUEF37cv29JCbHsPvBLmkRuRDhQ7AJM4mzpc=,iv:eXcWi8c5DTSYU11erKO7uAcqjyoRhKabx8sTdpROoj0=,tag:L8KEfubVr05QhfCBIhpr4g==,type:str]
     version: 3.13.3

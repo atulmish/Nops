@@ -24,4 +24,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\Nops.Core.Tests\Fixtures\secrets.sops.yaml" Link="Fixtures\secrets.sops.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\Nops.Core.Tests\Fixtures\AGE-TEST-KEY.txt" Link="Fixtures\AGE-TEST-KEY.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

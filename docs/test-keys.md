@@ -7,11 +7,13 @@ Guidelines for managing test-only cryptographic material used in fixtures and CI
 Test keys are stored in:
 
 ```
-tests/Nops.Core.Tests/Fixtures/Keys/
-├── age-test-identity.txt      # Age private key (Bech32)
-├── pgp-test-key.asc            # PGP private key (ASCII-armored)
-└── TEST-ONLY-README.md        # This file
+tests/Nops.Core.Tests/Fixtures/
+├── AGE-TEST-KEY.txt           # Age private identities (Bech32), TEST ONLY
+└── README.md                  # Notes about the test-only keys
 ```
+
+> PGP fixtures use a separate test key that is not committed; those tests are
+> skipped locally unless the key is supplied. Age fixtures use `AGE-TEST-KEY.txt`.
 
 ## Security Rules
 
@@ -22,10 +24,20 @@ tests/Nops.Core.Tests/Fixtures/Keys/
 
 ## Age Test Identity
 
+`AGE-TEST-KEY.txt` contains three TEST-ONLY age identities:
+
 ```
-# tests/Nops.Core.Tests/Fixtures/Keys/age-test-identity.txt
-AGE-SECRET-KEY-1234567890abcdef...  # TEST ONLY - NOT FOR PRODUCTION
+# tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt
+# Key A - primary fixtures
+AGE-SECRET-KEY-...  # TEST ONLY - NOT FOR PRODUCTION
+# Key B - 2-of-3 Shamir fixture
+AGE-SECRET-KEY-...
+# Key C - 2-of-3 Shamir fixture
+AGE-SECRET-KEY-...
 ```
+
+Key A encrypts the single-recipient fixtures. Keys A, B and C each encrypt one
+key group of `multi-keygroup.sops.yaml`, which uses a Shamir threshold of 2.
 
 Used to:
 - Generate SOPS-encrypted test fixtures (`sops -e`)
@@ -35,21 +47,18 @@ Used to:
 ### Generating a New Age Test Key
 
 ```bash
-age-keygen -o tests/Nops.Core.Tests/Fixtures/Keys/age-test-identity.txt
+age-keygen -o key-A.txt
 # Copy the public key to fixture YAML files as recipient
 ```
 
 ## PGP Test Key
 
-```
-# tests/Nops.Core.Tests/Fixtures/Keys/pgp-test-key.asc
------BEGIN PGP PRIVATE KEY BLOCK-----
-...
------END PGP PRIVATE KEY BLOCK-----
-```
+No PGP test key is committed to the repository. PGP fixtures, if added, must be
+generated with a locally generated test key and are not decrypted by the
+committed CI setup.
 
 Used for:
-- JSON format test fixtures (PGP-encrypted)
+- JSON format test fixtures (PGP-encrypted) - not currently committed
 - Testing PgpMasterKey decryption path
 
 ### Generating a New PGP Test Key
@@ -67,11 +76,12 @@ Encrypted fixtures use these keys:
 | Fixture | Key Type | Purpose |
 |---|---|---|
 | `secrets.sops.yaml` | Age | Basic YAML decryption |
-| `secrets.sops.json` | PGP | JSON decryption |
+| `secrets.sops.json` | Age | Basic JSON decryption |
 | `nested.sops.yaml` | Age | Nested structures + arrays |
 | `dotenv.sops.env` | Age | Dotenv format |
 | `ini.sops.ini` | Age | INI format |
 | `binary.sops.json` | Age | Binary-as-JSON format |
+| `unencrypted-types.sops.yaml` | Age | Scalar typing with `_unencrypted` values |
 | `multi-keygroup.sops.yaml` | Age (2-of-3) | Shamir secret sharing |
 | `mac-only-encrypted.sops.yaml` | Age | MAC-only-encrypted vector |
 | `comments.sops.yaml` | Age | Comment handling (sops#2243) |
@@ -81,12 +91,17 @@ Encrypted fixtures use these keys:
 CI verifies fixtures match plaintext:
 
 ```yaml
-- name: Verify SOPS fixtures
+- name: Verify fixtures match plaintext
+  env:
+    SOPS_TEST_AGE_KEY: ${{ secrets.SOPS_TEST_AGE_KEY }}
   run: |
+    # The multi-keygroup fixture needs two of the three committed identities.
+    committed=$(grep AGE-SECRET-KEY tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt | tr '\n' ' ')
+    export SOPS_AGE_KEY="${SOPS_TEST_AGE_KEY:-} $committed"
     for f in tests/Nops.Core.Tests/Fixtures/*.sops.*; do
-      plain="${f%.sops.*}.plain"
-      sops decrypt "$f" > "/tmp/decrypted"
-      diff "$plain" "/tmp/decrypted" || { echo "Mismatch: $f"; exit 1; }
+      plain="${f}.plain"
+      [ -f "$plain" ] || continue
+      sops decrypt "$f" | diff -q "$plain" - || { echo "Mismatch: $f"; exit 1; }
     done
 ```
 
@@ -95,7 +110,7 @@ CI verifies fixtures match plaintext:
 1. Generate new test keys (see above)
 2. Regenerate all fixtures with new keys:
    ```bash
-   sops -e --age "$(cat age-test-identity.txt | age-keygen -p)" secrets.yaml > secrets.sops.yaml
+   sops -e --age "$(age-keygen -y < key-A.txt)" secrets.yaml > secrets.sops.yaml
    ```
 3. Update `.plain` expected files
 4. Commit all changes together

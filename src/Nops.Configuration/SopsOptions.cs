@@ -86,12 +86,10 @@ public class SopsOptions
         {
             foreach (var identity in AgeIdentities)
             {
-                // If it looks like a Bech32 age key, create AgeMasterKey directly
-                if (identity.StartsWith("AGE-SECRET-KEY-"))
-                {
-                    keys.Add(new Nops.Core.Keys.AgeMasterKey(identity, identity));
-                }
-                // Otherwise treat as file path to read identities from
+                // Accept a Bech32 "AGE-SECRET-KEY-..." string or a path to a file
+                // containing one or more such keys.
+                foreach (var key in Nops.Core.Keys.AgeIdentityLoader.Load(identity))
+                    keys.Add(new Nops.Core.Keys.AgeMasterKey(recipient: null, privateKey: key));
             }
         }
 

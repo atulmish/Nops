@@ -1,0 +1,20 @@
+defaults_unencrypted: &d
+    host: db.local
+    port: 5432
+prod_unencrypted: *d
+password: ENC[AES256_GCM,data:nr/Xqk1Cug==,iv:MZh1MCLtec0Ue3lqfnOgymNKizctS5tvHBAtuQj/p3I=,tag:OQTgKJZD6F6eaCPpl8hrwA==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBWamhNeTdQUWp5ZjFuakJs
+            Q29RZFREcU1tRjZkckZ2V2xGNGhHRlVoTzJrCmFpajFvcm1ldittZXM2R1ZjL3kv
+            NUcwV0pVTGNwZ1B3b1RLb1U2SDVtOXcKLS0tIFJJT3VrcGxqcGU3WW9jQ0haV3pI
+            QkFzc1ZHaGNlME92OHEwWjJSZXNtdzgK8yARoXGue447QOqZxO9YumgF0SI+UMCY
+            TmNfiW+TJK5E240gErKZ7MPNeXfCqKj+RasM3z8TAUhquxSsGeGVKw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1q4rff6x85y5jnatyphqst5h83njnnv9whguftdutr7t5x0g5pcgs6z9edz
+    lastmodified: "2026-10-19T19:25:43Z"
+    mac: ENC[AES256_GCM,data:PgG4/eQm1KvQJuMgGtokivVBoEEJcpJykG/DHPNuE1gOJFulCJDyIXbJOpWyeVJVczOj16PIJ9fgRpbuVAOpn5Xt+Lw7AMDKXrNTFD6g4S5n2pWQef5uDZAMRgWTZvPBeHXdB/pDt/U6L2MxvVFupziz8+rUY9emG7kxWsg6ZSY=,iv:1fUfOLjHMxhPTqNP6aCU/8MDnyv9x5x5j8aBhfOtORY=,tag:Dx3X+Y29F2YsTayWIPzXfA==,type:str]
+    unencrypted_suffix: _unencrypted
+    version: 3.13.3
