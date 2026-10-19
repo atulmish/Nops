@@ -1,66 +1,38 @@
-using Microsoft.Extensions.Configuration;
+// ASP.NET Core minimal API: SOPS secrets as a configuration source, consumed through options.
+//
+// Run:  dotnet run   then   curl http://localhost:5080/
+// launchSettings.json points SOPS_AGE_KEY_FILE at the TEST-ONLY key used for the sample file.
+using Microsoft.Extensions.Options;
 using Nops.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add SOPS-encrypted configuration
+// Layered like any other source: values here override appsettings.json, and
+// environment variables / command line added later still override these.
 builder.Configuration.AddSops("secrets.sops.yaml", opts =>
 {
-    opts.Optional = true; // Don't fail if file missing in dev
+    opts.Optional = builder.Environment.IsDevelopment(); // missing file is fine locally
+    opts.WatchForChanges = true;                          // IOptionsMonitor sees rotations
 });
+
+builder.Services.AddOptions<ApiOptions>().BindConfiguration(ApiOptions.Section);
 
 var app = builder.Build();
 
-// Dev-only endpoint: expose decrypted secrets
-if (app.Environment.IsDevelopment())
+// Never return secret values from an endpoint - report what is configured instead.
+app.MapGet("/", (IOptionsMonitor<ApiOptions> api, IConfiguration config) => new
 {
-    app.MapGet("/secret", (IConfiguration config) =>
-    {
-        var results = new List<(string Key, string Value)>();
-
-        foreach (var section in config.GetSection("").GetChildren())
-        {
-            Flatten(section, "", results);
-        }
-
-        return Results.Ok(results.OrderBy(r => r.Key).ToDictionary(r => r.Key, r => r.Value));
-    });
-
-    app.MapGet("/", () =>
-        """
-        MinimalApiSample - Nops Configuration Demo
-        
-        Endpoints:
-          GET /       - This help text
-          GET /secret - Decrypted secrets (dev only)
-        
-        To run with a SOPS-encrypted file:
-          1. Place secrets.sops.yaml in the output directory
-          2. Run: dotnet run
-          3. Visit http://localhost:5000/secret
-        """);
-}
-else
-{
-    app.MapGet("/", () =>
-        "MinimalApiSample is running in production mode. Secrets are loaded via environment variables or other configuration sources.");
-}
+    api.CurrentValue.BaseUrl,
+    ApiKeyConfigured = !string.IsNullOrEmpty(api.CurrentValue.Key),
+    DatabaseHost = config["Database:Host"],
+});
 
 app.Run();
 
-static void Flatten(IConfigurationSection section, string prefix, List<(string Key, string Value)> results)
+public sealed class ApiOptions
 {
-    var key = string.IsNullOrEmpty(prefix) ? section.Key : $"{prefix}:{section.Key}";
+    public const string Section = "Api";
 
-    if (!section.GetChildren().Any())
-    {
-        results.Add((key, section.Value ?? ""));
-    }
-    else
-    {
-        foreach (var child in section.GetChildren())
-        {
-            Flatten(child, key, results);
-        }
-    }
+    public string BaseUrl { get; set; } = "";
+    public string Key { get; set; } = "";
 }

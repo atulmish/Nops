@@ -1,11 +1,11 @@
 # Nops.Core.GcpKms
 
-Google Cloud KMS master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
+Google Cloud KMS master key provider for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
 
 ## Installation
 
 ```bash
-dotnet add package Nops.Core.GcpKms
+dotnet add package Nops.Core.GcpKms --prerelease
 ```
 
 ## Usage
@@ -16,8 +16,7 @@ using Nops.Core.Keys;
 
 // Option 1: Application Default Credentials (ADC)
 var masterKey = new GcpKmsMasterKey(
-    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY"
+    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key"
 );
 
 // Option 2: Explicit client with service account credentials
@@ -25,7 +24,6 @@ var client = KeyManagementServiceClient.Create(); // uses ADC by default
 
 var masterKey2 = new GcpKmsMasterKey(
     resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     client: client
 );
 
@@ -59,7 +57,7 @@ export GCP_KMS_EMULATOR_HOST=localhost:5000
 
 Minimum IAM role for KMS decrypt:
 
-```
+```text
 roles/cloudkms.cryptoKeyDecrypter
 ```
 

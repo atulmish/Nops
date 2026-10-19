@@ -1,11 +1,11 @@
 # Nops.Core.Azkv
 
-Azure Key Vault master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
+Azure Key Vault master key provider for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
 
 ## Installation
 
 ```bash
-dotnet add package Nops.Core.Azkv
+dotnet add package Nops.Core.Azkv --prerelease
 ```
 
 ## Usage
@@ -17,8 +17,7 @@ using Nops.Core.Keys;
 // Option 1: DefaultAzureCredential (env vars, managed identity, VS/Azure CLI auth)
 var masterKey = new AzkvMasterKey(
     vaultUrl: "https://my-vault.vault.azure.net",
-    keyName: "sops-wrapping-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY"
+    keyName: "sops-wrapping-key"
 );
 
 // Option 2: Explicit client with specific credentials
@@ -33,7 +32,6 @@ var client = new KeyClient(
 var masterKey2 = new AzkvMasterKey(
     vaultUrl: "https://my-vault.vault.azure.net",
     keyName: "sops-wrapping-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     client: client
 );
 

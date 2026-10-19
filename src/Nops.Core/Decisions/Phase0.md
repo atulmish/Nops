@@ -17,11 +17,13 @@
 **Rationale:** .NET's `System.Security.Cryptography.AesGcm` rejects 32-byte nonces (throws `ArgumentException`). SOPS specification uses 32-byte nonces, so we cannot use the BCL implementation directly.
 
 **Evidence:** Spike test `AesGcmBackendSpikeTests.AesGcm_Accepts32ByteNonce` confirms rejection:
-```
+
+```text
 System.ArgumentException: The specified nonce is not a valid size for this algorithm. (Parameter 'nonce')
 ```
 
 **BouncyCastle API discovered:**
+
 - Constructor: `GcmBlockCipher(IBlockCipher c)` - pass `AesEngine`
 - Init: `Init(bool forEncryption, ICipherParameters parameters)`
 - Process: `ProcessBlock(byte[] inBuf, int inOff, byte[] outBuf, int outOff)`
@@ -37,6 +39,7 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 **Rationale:** `YamlMappingNode` exposes a `Children` property (discovered via reflection) that preserves insertion order from the source file. This is critical for SOPS MAC computation which depends on walk order.
 
 **Key types discovered:**
+
 - `YamlStream.Load(TextReader)` - parse YAML
 - `YamlMappingNode.Children` - ordered key-value pairs
 - `YamlSequenceNode` - arrays (list-like)
@@ -53,6 +56,7 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 **Rationale:** SOPS-encrypted files contain PGP `enc` fields with ASCII-armored PGP messages. BouncyCastle's `ArmoredInputStream` is the standard way to decode these.
 
 **Key types discovered:**
+
 - `Org.BouncyCastle.Bcpg.ArmoredInputStream` - decode armored PGP data
 - `Org.BouncyCastle.Bcpg.OpenPgp.*` - PGP message types (PgpEncryptedDataList, etc.)
 

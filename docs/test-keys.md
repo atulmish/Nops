@@ -6,7 +6,7 @@ Guidelines for managing test-only cryptographic material used in fixtures and CI
 
 Test keys are stored in:
 
-```
+```text
 tests/Nops.Core.Tests/Fixtures/
 ├── AGE-TEST-KEY.txt           # Age private identities (Bech32), TEST ONLY
 ├── PGP-TEST-KEY.asc           # OpenPGP secret key (no passphrase), TEST ONLY
@@ -24,7 +24,7 @@ tests/Nops.Core.Tests/Fixtures/
 
 `AGE-TEST-KEY.txt` contains three TEST-ONLY age identities:
 
-```
+```text
 # tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt
 # Key A - primary fixtures
 AGE-SECRET-KEY-...  # TEST ONLY - NOT FOR PRODUCTION
@@ -38,6 +38,7 @@ Key A encrypts the single-recipient fixtures. Keys A, B and C each encrypt one
 key group of `multi-keygroup.sops.yaml`, which uses a Shamir threshold of 2.
 
 Used to:
+
 - Generate SOPS-encrypted test fixtures (`sops -e`)
 - Decrypt test fixtures in CI (`sops decrypt`)
 - Verify Nops decryption matches `sops decrypt` output
@@ -73,7 +74,7 @@ gpg --armor --export-secret-keys "$FP" > PGP-TEST-KEY.asc
 sops -e --pgp "$FP" pgp.yaml > pgp.sops.yaml
 ```
 
-Update `PgpTestFingerprint` in `SopsFileIntegrationTests.cs` after rotating.
+Update `PgpTestFingerprint` in `SopsFixtureTests.cs` after rotating.
 
 ## Fixture Files
 
@@ -121,9 +122,11 @@ CI verifies fixtures match plaintext:
 
 1. Generate new test keys (see above)
 2. Regenerate all fixtures with new keys:
+
    ```bash
    sops -e --age "$(age-keygen -y < key-A.txt)" secrets.yaml > secrets.sops.yaml
    ```
+
 3. Update `.plain` expected files
 4. Commit all changes together
 5. Verify CI passes

@@ -1,11 +1,11 @@
 # Nops.Core.AwsKms
 
-AWS KMS master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
+AWS KMS master key provider for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
 
 ## Installation
 
 ```bash
-dotnet add package Nops.Core.AwsKms
+dotnet add package Nops.Core.AwsKms --prerelease
 ```
 
 ## Usage
@@ -17,7 +17,6 @@ using Nops.Core.Keys;
 // Option 1: Default credential chain (environment variables, IMDS, shared config)
 var masterKey = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234-5678-efgh",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     context: new List<KeyValuePair<string, string>>
     {
         new KeyValuePair<string, string>("Project", "myapp")
@@ -32,7 +31,6 @@ var client = new AmazonKMSClient(
 
 var masterKey2 = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234-5678-efgh",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     client: client
 );
 
@@ -108,7 +106,6 @@ When creating `AwsKmsMasterKey`, pass the same context:
 ```csharp
 var key = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234",
-    encryptedShare: "...",
     context: new[] { 
         new KeyValuePair<string, string>("Project", "myapp"),
         new KeyValuePair<string, string>("Environment", "production") 

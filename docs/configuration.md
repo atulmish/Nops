@@ -1,11 +1,13 @@
-# Configuration Provider - Nops
+# Configuration Provider
 
-ASP.NET Core `IConfiguration` integration for SOPS-encrypted files.
+`Microsoft.Extensions.Configuration` provider for SOPS-encrypted files. It works with
+ASP.NET Core, the generic host (`Host.CreateApplicationBuilder`), worker services and
+plain `ConfigurationBuilder`; it does not depend on the ASP.NET Core shared framework.
 
 ## Installation
 
 ```bash
-dotnet add package Nops.Configuration
+dotnet add package Nops.Configuration --prerelease
 ```
 
 ## Basic Usage
@@ -13,30 +15,48 @@ dotnet add package Nops.Configuration
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
+// Keys come from the sops environment by default (see "Keys" below)
 builder.Configuration.AddSops("secrets.sops.yaml");
 
-var app = builder.Build();
+builder.Services.AddOptions<DbOptions>().BindConfiguration("app:db");
 
-// Access secrets via standard IConfiguration
+var app = builder.Build();
 var password = app.Configuration["app:db:password"];
 ```
+
+Sources are layered in the order they are added, so add `AddSops` after
+`appsettings.json` and before anything that should override it (environment variables
+and the command line are already added by `WebApplication.CreateBuilder`, so call
+`builder.Configuration.AddEnvironmentVariables()` again after `AddSops` if
+environment variables must win).
+
+Relative paths are resolved against the current working directory. For services whose
+working directory is not the app folder, pass
+`Path.Combine(AppContext.BaseDirectory, "secrets.sops.yaml")`.
+
+## Keys
+
+| Option | Description |
+|---|---|
+| `UseSopsEnvironment` (default `true`) | Use `SOPS_AGE_KEY`, `SOPS_AGE_KEY_FILE` and `$XDG_CONFIG_HOME/sops/age/keys.txt` (`~/.config`, `~/Library/Application Support` or `%AppData%`), like the sops CLI |
+| `AgeIdentities` | `AGE-SECRET-KEY-...` strings or paths to age key files |
+| `PgpKeys` | `(byte[] key, string? passphrase)` tuples, armored or binary secret keys |
+| `MasterKeys` | Any `IMasterKeyProvider`, e.g. cloud KMS keys ([Cloud KMS setup](cloud-kms.md)) |
+
+All configured sources are tried together; each distinct age key is tried once.
 
 ## Options
 
 ```csharp
 builder.Configuration.AddSops("secrets.sops.yaml", opts =>
 {
-    // Required: path to the SOPS-encrypted file
-    opts.FilePath = "secrets.sops.yaml";
-    
-    // File format (auto-detected from extension if omitted)
+    // File format (auto-detected from extension: .yaml/.yml, .json, .env/.dotenv, .ini, .bin)
     opts.FileKind = "yaml";  // yaml | json | dotenv | ini | binary
-    
-    // Age identities (private keys or file paths)
-    opts.AgeIdentities = new[] { "AGE-SECRET-KEY-...", "/path/to/age-keys" };
-    
-    // PGP private keys
-    opts.PgpKeys = new[] { (pgpKeyBytes, "passphrase") };
+
+    // Keys (see the table above)
+    opts.AgeIdentities = ["AGE-SECRET-KEY-...", "/path/to/age-keys.txt"];
+    opts.PgpKeys = [(pgpKeyBytes, "passphrase")];
+    opts.UseSopsEnvironment = true;
     
     // Watch for file changes and reload automatically
     opts.WatchForChanges = true;
@@ -103,6 +123,12 @@ Becomes:
 | `time` | ISO-8601 string (e.g., `2025-01-15T10:30:00Z`) |
 | `Comment` | Skipped (not exposed) |
 
+### INI and dotenv
+
+INI sections become the first key segment (`[db]` + `user=` → `db:user`). Keys before
+the first section are in the `DEFAULT` section (`DEFAULT:name`), as in sops. Dotenv
+keys are used as-is.
+
 ### Case Insensitivity
 
 Keys are case-insensitive by default (standard .NET `IConfiguration` behavior):
@@ -141,6 +167,7 @@ opts.ReloadInterval = TimeSpan.FromMilliseconds(250);  // Debounce (default)
 ```
 
 When the file changes:
+
 1. The provider re-reads and decrypts the file
 2. `OnReload` is triggered on the `IConfigurationRoot`
 3. Any registered change tokens fire

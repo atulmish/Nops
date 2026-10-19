@@ -1,11 +1,11 @@
 # Nops.Core.Vault
 
-HashiCorp Vault Transit and HCKMS master key providers for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
+HashiCorp Vault Transit and HCKMS master key providers for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
 
 ## Installation
 
 ```bash
-dotnet add package Nops.Core.Vault
+dotnet add package Nops.Core.Vault --prerelease
 ```
 
 ## Usage
@@ -21,7 +21,6 @@ var masterKey = new VaultTransitMasterKey(
     address: "https://vault.example.com:8200",
     mountPath: "transit",
     keyName: "my-transit-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     token: "s.vault-token-here"
 );
 
@@ -33,7 +32,6 @@ var masterKey2 = new VaultTransitMasterKey(
     address: "https://vault.example.com:8200",
     mountPath: "transit",
     keyName: "my-transit-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     httpClient: httpClient
 );
 
@@ -56,7 +54,6 @@ var hckmsKey = new HckmsMasterKey(
     location: "global",
     keyRing: "my-keyring",
     cryptoKey: "my-hckms-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     vaultToken: "s.vault-token-here"  // required for Vault-mediated access
 );
 ```

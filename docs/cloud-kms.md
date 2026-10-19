@@ -14,12 +14,31 @@ Nops supports decrypting data key shares encrypted under cloud KMS keys. Each pr
 | HashiCorp Vault Transit | `Nops.Core.Vault` | `hc_vault` |
 | HashiCorp Cloud KMS | `Nops.Core.Vault` | `hckms` |
 
+### Using a provider
+
+Create one master key per KMS key that can decrypt the file and pass them in
+`MasterKeys`. You don't copy anything out of the file: the encrypted data key is
+read from the file's `sops` metadata.
+
+```csharp
+builder.Configuration.AddSops("secrets.sops.yaml", opts =>
+{
+    opts.MasterKeys = new IMasterKeyProvider[]
+    {
+        new AwsKmsMasterKey("arn:aws:kms:us-east-1:123456789012:key/abcd-1234"),
+    };
+});
+```
+
+`AgeIdentities`, `PgpKeys` and the sops environment keys are still tried
+alongside `MasterKeys`.
+
 ## AWS KMS
 
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.AwsKms
+dotnet add package Nops.Core.AwsKms --prerelease
 ```
 
 ### Authentication
@@ -36,8 +55,7 @@ Uses [AWS SDK default credential chain](https://docs.aws.amazon.com/sdk-for-net/
 using Nops.Core.Keys;
 
 var masterKey = new AwsKmsMasterKey(
-    arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234",
-    encryptedShare: "BASE64_ENCODED_SHARE"
+    arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234"
 );
 ```
 
@@ -61,7 +79,6 @@ If the SOPS file was encrypted with encryption context, pass it when creating th
 ```csharp
 var masterKey = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234",
-    encryptedShare: "...",
     context: new[] { 
         new KeyValuePair<string, string>("Project", "myapp"),
         new KeyValuePair<string, string>("Env", "prod") 
@@ -85,7 +102,6 @@ var client = new AmazonKMSClient(
 
 var masterKey = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:000000000000:key/test",
-    encryptedShare: "...",
     client: client
 );
 ```
@@ -95,7 +111,7 @@ var masterKey = new AwsKmsMasterKey(
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.GcpKms
+dotnet add package Nops.Core.GcpKms --prerelease
 ```
 
 ### Authentication
@@ -112,14 +128,13 @@ Uses [Application Default Credentials (ADC)](https://cloud.google.com/docs/authe
 using Nops.Core.Keys;
 
 var masterKey = new GcpKmsMasterKey(
-    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key",
-    encryptedShare: "BASE64_ENCODED_SHARE"
+    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key"
 );
 ```
 
 ### IAM Role
 
-```
+```text
 roles/cloudkms.cryptoKeyDecrypter
 ```
 
@@ -139,7 +154,7 @@ Or custom policy:
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.Azkv
+dotnet add package Nops.Core.Azkv --prerelease
 ```
 
 ### Authentication
@@ -157,8 +172,7 @@ using Nops.Core.Keys;
 
 var masterKey = new AzkvMasterKey(
     vaultUrl: "https://my-vault.vault.azure.net",
-    keyName: "sops-wrapping-key",
-    encryptedShare: "BASE64_ENCODED_SHARE"
+    keyName: "sops-wrapping-key"
 );
 ```
 
@@ -175,7 +189,7 @@ az keyvault set-policy --name my-vault --upn you@example.com --key-permissions u
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.Vault
+dotnet add package Nops.Core.Vault --prerelease
 ```
 
 ### Authentication
@@ -189,7 +203,6 @@ var masterKey = new VaultTransitMasterKey(
     address: "https://vault.example.com:8200",
     mountPath: "transit",
     keyName: "my-transit-key",
-    encryptedShare: "BASE64_ENCODED_SHARE",
     token: "s.vault-token-here"
 );
 ```
@@ -218,7 +231,6 @@ var masterKey = new HckmsMasterKey(
     location: "global",
     keyRing: "my-keyring",
     cryptoKey: "my-hckms-key",
-    encryptedShare: "BASE64_ENCODED_SHARE",
     vaultToken: "s.vault-token-here"
 );
 ```
@@ -241,7 +253,9 @@ sops:
       enc: BASE64...
 ```
 
-Nops will try age first, then AWS KMS, then GCP KMS - returning on first success.
+Nops goes through the file's key entries in order and asks each matching
+provider to decrypt; the first success wins. With several key groups (Shamir),
+it stops as soon as `shamir_threshold` groups have been decrypted.
 
 ## Testing
 
