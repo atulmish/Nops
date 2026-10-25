@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Each package is attested with signed build provenance and signed with Sigstore at release time, and the signature bundles are attached to the GitHub release. See "Verifying a release" in `docs/security-model.md`
+- The release workflow can be started by hand on a branch as a dry run that builds, attests and signs but publishes nothing
+
+### Changed
+
+- Workflows use read-only tokens at the top level and grant write permissions only to the job that needs them
+- Every GitHub Action is pinned to a commit SHA (Dependabot keeps them current), and the tools installed in workflows have pinned versions
+
 ## [1.1.0] - 2026-10-25
 
 ### Added
