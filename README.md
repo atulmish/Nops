@@ -6,6 +6,7 @@
   <a href="https://github.com/atulmish/Nops/actions/workflows/ci.yml"><img src="https://github.com/atulmish/Nops/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/atulmish/Nops/actions/workflows/codeql.yml"><img src="https://github.com/atulmish/Nops/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
   <a href="https://securityscorecards.dev/viewer/?uri=github.com/atulmish/Nops"><img src="https://api.securityscorecards.dev/projects/github.com/atulmish/Nops/badge" alt="OpenSSF Scorecard"></a>
+  <a href="https://www.bestpractices.dev/projects/15898"><img src="https://www.bestpractices.dev/projects/15898/badge" alt="OpenSSF Best Practices"></a>
   <a href="https://atulmish.github.io/Nops/"><img src="https://github.com/atulmish/Nops/actions/workflows/pages.yml/badge.svg" alt="Docs"></a>
 </p>
 
