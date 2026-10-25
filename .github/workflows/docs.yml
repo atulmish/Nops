@@ -32,5 +32,6 @@ jobs:
             --include-fragments
             --exclude-path bin --exclude-path obj
             --accept 200,206,429
+            --exclude '^https://github.com/atulmish/Nops/(security|stargazers)'
             '**/*.md'
           fail: true
