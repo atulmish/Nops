@@ -35,6 +35,8 @@ The age implementation supports X25519 recipients only, which is what `sops` use
 - Packages are published by a GitHub Actions workflow using NuGet trusted publishing (short-lived credentials, no stored API key) from a version tag.
 - Builds are deterministic in CI and include source link and symbol packages, so a binary can be matched to its source.
 - A software bill of materials (CycloneDX) is attached to each GitHub release.
+- From the first release made after version 1.1.0, each package has a signed [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations) and a Sigstore signature bundle (`*.nupkg.sigstore.json`) attached to the GitHub release. See "Verifying a release" below.
+- Workflows run with read-only tokens by default and grant write access only to the job that needs it. Every action is pinned to a commit SHA, and Dependabot proposes updates.
 - Dependabot and dependency review keep dependencies current. Direct dependencies are limited to BouncyCastle, YamlDotNet and the Microsoft.Extensions packages, plus the cloud SDKs in the optional KMS packages.
 - The main branch requires a pull request and passing checks, and release tags cannot be moved or deleted.
 
@@ -43,3 +45,19 @@ The age implementation supports X25519 recipients only, which is what `sops` use
 - There has been no independent third-party security audit. The age and MAC code is small and heavily tested, and reviews are welcome. Please open an issue or a private advisory.
 - Nops only decrypts. It cannot create or edit encrypted files.
 - Configuration values are strings in memory, as with any .NET configuration source, and are not zeroed after use.
+
+## Verifying a release
+
+For a package published after version 1.1.0, download the `.nupkg` from the GitHub release (or from NuGet) and check that it was built by this repository's release workflow:
+
+```bash
+gh attestation verify Nops.Core.<version>.nupkg --repo atulmish/Nops
+
+cosign verify-blob Nops.Core.<version>.nupkg \
+  --bundle Nops.Core.<version>.nupkg.sigstore.json \
+  --certificate-identity-regexp 'https://github.com/atulmish/Nops/.github/workflows/release.yml@refs/tags/v.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Both commands fail if the file was not produced by that workflow from a version tag.
+
