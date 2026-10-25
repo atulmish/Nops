@@ -9,7 +9,7 @@ namespace Nops.Core.Stores;
 /// Store for binary files (stored as JSON with {data: ENC[...]} format).
 /// Read-only in MVP - encryption not supported.
 /// </summary>
-public static class BinaryStore
+internal static class BinaryStore
 {
     /// <summary>
     /// Load a SOPS-encrypted binary file (JSON format with data field).

@@ -52,3 +52,13 @@ public class AgeIdentityLoaderTests
         Assert.Empty(keys);
     }
 }
+
+public class AgeIdentityLoaderEdgeTests
+{
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("/definitely/not/a/key/file.txt")]
+    public void NeitherKeyNorFile_YieldsNothing(string spec) =>
+        Assert.Empty(Nops.Core.Keys.AgeIdentityLoader.Load(spec));
+}

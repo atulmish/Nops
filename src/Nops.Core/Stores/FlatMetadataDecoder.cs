@@ -9,7 +9,7 @@ namespace Nops.Core.Stores;
 /// Flat keys use "__" as a path separator with "list_&lt;N&gt;" for array indices and
 /// "map_&lt;name&gt;" for map keys (e.g. "age__list_0__map_enc").
 /// </summary>
-public static class FlatMetadataDecoder
+internal static class FlatMetadataDecoder
 {
     public static Dictionary<string, object> Decode(Dictionary<string, string> flatKeys)
     {

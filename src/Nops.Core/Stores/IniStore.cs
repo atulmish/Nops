@@ -10,7 +10,7 @@ namespace Nops.Core.Stores;
 /// Store for INI files. Section-oriented with ; and # comments.
 /// Sections map to nested TreeBranches; the [sops] section carries metadata.
 /// </summary>
-public static class IniStore
+internal static class IniStore
 {
     private const string DefaultSection = "DEFAULT";
 

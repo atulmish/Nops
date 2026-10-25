@@ -8,7 +8,7 @@ namespace Nops.Core.Stores;
 /// (Dictionary for mappings, List for sequences) so metadata can be fed to
 /// <see cref="SopsMetadataParser"/>.
 /// </summary>
-public static class TreeConverter
+internal static class TreeConverter
 {
     public static object? ToObject(object? value)
     {

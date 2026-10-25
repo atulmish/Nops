@@ -33,7 +33,9 @@ public sealed class SopsOptions
     public IReadOnlyList<(byte[] Key, string? Passphrase)>? PgpKeys { get; set; }
 
     /// <summary>
-    /// Throw a <see cref="MacMismatchException"/> when the MAC does not match.
+    /// Throw a <see cref="MacMismatchException"/> when the MAC does not match (default). Setting this to
+    /// <c>false</c> is the equivalent of <c>sops --ignore-mac</c>: a modified or truncated file is then
+    /// decrypted anyway, so only do it to recover a damaged file you already trust.
     /// </summary>
     public bool ThrowOnMacMismatch { get; set; } = true;
 
@@ -123,6 +125,8 @@ public static class SopsFile
     private static readonly JsonSerializerOptions TypedJsonOptions = new()
     {
         NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals,
+        // Like IConfiguration binding: "db_host"/"Host" keys in the file match properties regardless of case.
+        PropertyNameCaseInsensitive = true,
     };
 
     private static ISopsStore DetectStore(string fileKind)
@@ -158,7 +162,7 @@ public static class SopsFile
             ageKeys.UnionWith(AgeIdentityLoader.LoadFromSopsEnvironment());
 
         foreach (var key in ageKeys)
-            providers.Add(new AgeMasterKey(recipient: null, privateKey: key));
+            providers.Add(new AgeMasterKey(key));
 
         // PGP private keys.
         if (options.PgpKeys != null)
@@ -443,14 +447,14 @@ public static class SopsFile
 /// <summary>
 /// Interface for stores that can load encrypted files.
 /// </summary>
-public interface ISopsStore
+internal interface ISopsStore
 {
     SopsTree LoadEncrypted(byte[] fileBytes, string filePath);
 }
 
 // Wrapper classes to implement ISopsStore
-public class YamlStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => YamlStore.LoadEncrypted(fileBytes, filePath); }
-public class JsonStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => JsonStore.LoadEncrypted(fileBytes, filePath); }
-public class DotenvStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => DotenvStore.LoadEncrypted(fileBytes, filePath); }
-public class IniStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => IniStore.LoadEncrypted(fileBytes, filePath); }
-public class BinaryStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => BinaryStore.LoadEncrypted(fileBytes, filePath); }
+internal class YamlStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => YamlStore.LoadEncrypted(fileBytes, filePath); }
+internal class JsonStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => JsonStore.LoadEncrypted(fileBytes, filePath); }
+internal class DotenvStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => DotenvStore.LoadEncrypted(fileBytes, filePath); }
+internal class IniStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => IniStore.LoadEncrypted(fileBytes, filePath); }
+internal class BinaryStoreWrapper : ISopsStore { public SopsTree LoadEncrypted(byte[] fileBytes, string filePath) => BinaryStore.LoadEncrypted(fileBytes, filePath); }

@@ -18,6 +18,9 @@ namespace Nops.Core.Keys;
 /// </summary>
 public class PgpMasterKey : IMasterKeyProvider
 {
+    /// <summary>
+    /// The key type identifier ("pgp").
+    /// </summary>
     public string KeyType => "pgp";
 
     /// <summary>
@@ -36,6 +39,12 @@ public class PgpMasterKey : IMasterKeyProvider
     /// </summary>
     public string? Passphrase { get; }
 
+    /// <summary>
+    /// Creates a PGP master key provider.
+    /// </summary>
+    /// <param name="fingerprint">The key fingerprint (hex), or empty to match any key.</param>
+    /// <param name="privateKeyBytes">The secret key, ASCII-armored or binary.</param>
+    /// <param name="passphrase">The key's passphrase, if it has one.</param>
     public PgpMasterKey(string fingerprint, byte[]? privateKeyBytes = null, string? passphrase = null)
     {
         Fingerprint = fingerprint;
@@ -149,17 +158,20 @@ public class PgpMasterKey : IMasterKeyProvider
 
     private PgpSecretKeyRing? LoadSecretKeyRing()
     {
-        using var ms = new MemoryStream(PrivateKeyBytes!);
+        var bytes = PrivateKeyBytes!;
 
         try
         {
+            using var ms = new MemoryStream(bytes);
             using var armoredReader = new ArmoredInputStream(ms);
             return new PgpSecretKeyRing(armoredReader);
         }
         catch
         {
-            ms.Position = 0;
-            return new PgpSecretKeyRing(ms);
+            // Not armored: read the bytes as a binary key ring. (A fresh stream, because disposing the
+            // armor reader above closes the one it wrapped.)
+            using var binary = new MemoryStream(bytes);
+            return new PgpSecretKeyRing(binary);
         }
     }
 

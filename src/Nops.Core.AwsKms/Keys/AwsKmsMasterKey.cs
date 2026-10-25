@@ -14,7 +14,7 @@ namespace Nops.Core.Keys;
 /// <summary>
 /// Represents a KMS key entry from .sops metadata with its encryption context.
 /// </summary>
-public sealed record AwsKmsEntry(
+internal sealed record AwsKmsEntry(
     string Arn,
     string Enc,
     IReadOnlyList<KeyValuePair<string, string>> Context,
@@ -121,7 +121,7 @@ public class AwsKmsMasterKey : IMasterKeyProvider
 /// <summary>
 /// Helper to parse opaque KMS entries from .sops metadata into typed AwsKmsEntry objects.
 /// </summary>
-public static class AwsKmsEntryParser
+internal static class AwsKmsEntryParser
 {
     /// <summary>
     /// Parse a single opaque KMS dict entry (from SopsMetadata.Kms) into an AwsKmsEntry.

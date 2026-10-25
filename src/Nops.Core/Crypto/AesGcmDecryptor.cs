@@ -10,7 +10,7 @@ namespace Nops.Core.Crypto;
 /// <summary>
 /// Interface for AES-GCM decryption with 32-byte nonce support (SOPS standard).
 /// </summary>
-public interface IAesGcmDecryptor
+internal interface IAesGcmDecryptor
 {
     /// <summary>
     /// Decrypt a 32-byte nonce AES-GCM ciphertext.
@@ -22,7 +22,7 @@ public interface IAesGcmDecryptor
 /// BouncyCastle-based AES-GCM decryptor supporting 32-byte nonces (SOPS standard).
 /// .NET AesGcm only supports 12-byte nonces, so we use BouncyCastle.GcmBlockCipher.
 /// </summary>
-public class BouncyCastleAesGcmDecryptor : IAesGcmDecryptor
+internal class BouncyCastleAesGcmDecryptor : IAesGcmDecryptor
 {
     public byte[] Decrypt(byte[] key, byte[] nonce, byte[] ciphertext, byte[] tag, byte[] aad)
     {
@@ -56,7 +56,7 @@ public class BouncyCastleAesGcmDecryptor : IAesGcmDecryptor
 /// High-level decryptor for SOPS encrypted values.
 /// Parses ENC[...] strings, decrypts with AES-GCM, and casts by type.
 /// </summary>
-public static class AesGcmDecryptor
+internal static class AesGcmDecryptor
 {
     private static readonly IAesGcmDecryptor Decryptor = new BouncyCastleAesGcmDecryptor();
 

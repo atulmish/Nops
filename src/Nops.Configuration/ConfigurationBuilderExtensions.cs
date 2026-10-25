@@ -7,7 +7,7 @@ namespace Nops.Configuration;
 /// <summary>
 /// Extension methods for adding SOPS configuration to IConfigurationBuilder and IHostApplicationBuilder.
 /// </summary>
-public static class ServiceCollectionExtensions
+public static class ConfigurationBuilderExtensions
 {
     /// <summary>
     /// Add a SOPS-encrypted file to the configuration builder.
@@ -27,18 +27,18 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="configurationBuilder">The IConfigurationBuilder to add to.</param>
     /// <param name="filePath">Path to the SOPS-encrypted file.</param>
-    /// <param name="configureOptions">Callback to configure SopsOptions.</param>
+    /// <param name="configureOptions">Callback to configure SopsConfigurationOptions.</param>
     /// <returns>The IConfigurationBuilder.</returns>
     public static IConfigurationBuilder AddSops(
         this IConfigurationBuilder configurationBuilder,
         string filePath,
-        Action<SopsOptions> configureOptions)
+        Action<SopsConfigurationOptions> configureOptions)
     {
         if (configurationBuilder == null) throw new ArgumentNullException(nameof(configurationBuilder));
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         if (configureOptions == null) throw new ArgumentNullException(nameof(configureOptions));
 
-        var options = new SopsOptions { FilePath = filePath };
+        var options = new SopsConfigurationOptions { FilePath = filePath };
         configureOptions(options);
 
         configurationBuilder.Add(new SopsConfigurationSource(options));
@@ -49,20 +49,20 @@ public static class ServiceCollectionExtensions
     /// Add a SOPS-encrypted file to the configuration builder with options.
     /// </summary>
     /// <param name="configurationBuilder">The IConfigurationBuilder to add to.</param>
-    /// <param name="configureOptions">Callback to configure SopsOptions (FilePath set inside callback).</param>
+    /// <param name="configureOptions">Callback to configure SopsConfigurationOptions (FilePath set inside callback).</param>
     /// <returns>The IConfigurationBuilder.</returns>
     public static IConfigurationBuilder AddSops(
         this IConfigurationBuilder configurationBuilder,
-        Action<SopsOptions> configureOptions)
+        Action<SopsConfigurationOptions> configureOptions)
     {
         if (configurationBuilder == null) throw new ArgumentNullException(nameof(configurationBuilder));
         if (configureOptions == null) throw new ArgumentNullException(nameof(configureOptions));
 
-        var options = new SopsOptions();
+        var options = new SopsConfigurationOptions();
         configureOptions(options);
 
         if (string.IsNullOrEmpty(options.FilePath))
-            throw new ArgumentException("FilePath must be set in SopsOptions", nameof(configureOptions));
+            throw new ArgumentException("FilePath must be set in SopsConfigurationOptions", nameof(configureOptions));
 
         configurationBuilder.Add(new SopsConfigurationSource(options));
         return configurationBuilder;
@@ -70,7 +70,7 @@ public static class ServiceCollectionExtensions
 }
 
 /// <summary>
-/// Extension methods for ASP.NET Core host builder.
+/// Extension methods for the generic host builder (<c>Host.CreateApplicationBuilder</c>, <c>WebApplication.CreateBuilder</c>).
 /// </summary>
 public static class HostApplicationBuilderExtensions
 {
@@ -79,16 +79,16 @@ public static class HostApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The IHostApplicationBuilder to add to.</param>
     /// <param name="filePath">Path to the SOPS-encrypted file.</param>
-    /// <param name="name">Optional name for the configuration section.</param>
-    public static void AddSops(
+    /// <returns>The same builder, for chaining.</returns>
+    public static Microsoft.Extensions.Hosting.IHostApplicationBuilder AddSops(
         this Microsoft.Extensions.Hosting.IHostApplicationBuilder builder,
-        string filePath,
-        string? name = null)
+        string filePath)
     {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
 
         builder.Configuration.AddSops(filePath);
+        return builder;
     }
 
     /// <summary>
@@ -96,18 +96,18 @@ public static class HostApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The IHostApplicationBuilder to add to.</param>
     /// <param name="filePath">Path to the SOPS-encrypted file.</param>
-    /// <param name="configureOptions">Callback to configure SopsOptions.</param>
-    /// <param name="name">Optional name for the configuration section.</param>
-    public static void AddSops(
+    /// <param name="configureOptions">Callback to configure SopsConfigurationOptions.</param>
+    /// <returns>The same builder, for chaining.</returns>
+    public static Microsoft.Extensions.Hosting.IHostApplicationBuilder AddSops(
         this Microsoft.Extensions.Hosting.IHostApplicationBuilder builder,
         string filePath,
-        Action<SopsOptions> configureOptions,
-        string? name = null)
+        Action<SopsConfigurationOptions> configureOptions)
     {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         if (configureOptions == null) throw new ArgumentNullException(nameof(configureOptions));
 
         builder.Configuration.AddSops(filePath, configureOptions);
+        return builder;
     }
 }

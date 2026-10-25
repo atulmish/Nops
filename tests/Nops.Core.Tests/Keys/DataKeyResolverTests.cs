@@ -170,12 +170,12 @@ public class DataKeyResolverTests
         // Collapse to one group holding pgp first, then age.
         metadata = metadata with
         {
-            KeyGroups = new List<Nops.Core.Stores.KeyGroup>
+            KeyGroups = new List<Nops.Core.KeyGroup>
             {
                 new(new[]
                 {
-                    new Nops.Core.Stores.KeyGroupEntry("pgp", "enc1"),
-                    new Nops.Core.Stores.KeyGroupEntry("age", "e1"),
+                    new Nops.Core.KeyGroupEntry("pgp", "enc1"),
+                    new Nops.Core.KeyGroupEntry("age", "e1"),
                 }),
             },
         };
@@ -198,9 +198,9 @@ public class DataKeyResolverTests
     {
         var metadata = CreateMetadataWithAgeAndPgp(threshold: 0) with
         {
-            KeyGroups = new List<Nops.Core.Stores.KeyGroup>
+            KeyGroups = new List<Nops.Core.KeyGroup>
             {
-                new(new[] { new Nops.Core.Stores.KeyGroupEntry("pgp", "enc1") }),
+                new(new[] { new Nops.Core.KeyGroupEntry("pgp", "enc1") }),
             },
         };
 
@@ -227,14 +227,14 @@ public class DataKeyResolverTests
         Assert.Equal(2, provider.Calls);
     }
 
-    private static Nops.Core.Stores.SopsMetadata CreateMetadataWithAge((string, string)[] entries, int threshold)
+    private static Nops.Core.SopsMetadata CreateMetadataWithAge((string, string)[] entries, int threshold)
     {
-        var ageEntries = entries.Select(e => new Nops.Core.Stores.AgeEntry(e.Item1, e.Item2)).ToList();
+        var ageEntries = entries.Select(e => new Nops.Core.AgeEntry(e.Item1, e.Item2)).ToList();
 
-        return new Nops.Core.Stores.SopsMetadata(
+        return new Nops.Core.SopsMetadata(
             Mac: null,
             Age: ageEntries,
-            Pgp: Array.Empty<Nops.Core.Stores.PgpEntry>(),
+            Pgp: Array.Empty<Nops.Core.PgpEntry>(),
             Kms: Array.Empty<object>(),
             GcpKms: Array.Empty<object>(),
             AzureKv: Array.Empty<object>(),
@@ -247,19 +247,19 @@ public class DataKeyResolverTests
             MacOnlyEncrypted: false, Version: "3.10.2", LastModified: null);
     }
 
-    private static Nops.Core.Stores.SopsMetadata CreateMetadataWithAgeAndPgp(int threshold)
+    private static Nops.Core.SopsMetadata CreateMetadataWithAgeAndPgp(int threshold)
     {
-        var ageEntries = new List<Nops.Core.Stores.AgeEntry> { new("r1", "e1") };
-        var pgpEntries = new List<Nops.Core.Stores.PgpEntry> { new("fp1", "enc1", null) };
+        var ageEntries = new List<Nops.Core.AgeEntry> { new("r1", "e1") };
+        var pgpEntries = new List<Nops.Core.PgpEntry> { new("fp1", "enc1", null) };
 
         // Explicit key groups: one age group and one pgp group (Shamir).
-        var keyGroups = new List<Nops.Core.Stores.KeyGroup>
+        var keyGroups = new List<Nops.Core.KeyGroup>
         {
-            new(new[] { new Nops.Core.Stores.KeyGroupEntry("age", "e1") }),
-            new(new[] { new Nops.Core.Stores.KeyGroupEntry("pgp", "enc1") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e1") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("pgp", "enc1") }),
         };
 
-        return new Nops.Core.Stores.SopsMetadata(
+        return new Nops.Core.SopsMetadata(
             Mac: null,
             Age: ageEntries,
             Pgp: pgpEntries,
@@ -276,19 +276,19 @@ public class DataKeyResolverTests
             KeyGroups: keyGroups);
     }
 
-    private static Nops.Core.Stores.SopsMetadata CreateMetadataWithThreeGroups(int threshold)
+    private static Nops.Core.SopsMetadata CreateMetadataWithThreeGroups(int threshold)
     {
-        var keyGroups = new List<Nops.Core.Stores.KeyGroup>
+        var keyGroups = new List<Nops.Core.KeyGroup>
         {
-            new(new[] { new Nops.Core.Stores.KeyGroupEntry("age", "e1") }),
-            new(new[] { new Nops.Core.Stores.KeyGroupEntry("age", "e2") }),
-            new(new[] { new Nops.Core.Stores.KeyGroupEntry("age", "e3") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e1") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e2") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e3") }),
         };
 
-        return new Nops.Core.Stores.SopsMetadata(
+        return new Nops.Core.SopsMetadata(
             Mac: null,
-            Age: new List<Nops.Core.Stores.AgeEntry> { new("r1", "e1"), new("r2", "e2"), new("r3", "e3") },
-            Pgp: Array.Empty<Nops.Core.Stores.PgpEntry>(),
+            Age: new List<Nops.Core.AgeEntry> { new("r1", "e1"), new("r2", "e2"), new("r3", "e3") },
+            Pgp: Array.Empty<Nops.Core.PgpEntry>(),
             Kms: Array.Empty<object>(),
             GcpKms: Array.Empty<object>(),
             AzureKv: Array.Empty<object>(),

@@ -9,7 +9,7 @@ namespace Nops.Core.Crypto;
 /// Canonical encoding for SOPS MAC input (ToBytes from sops.go:980-1003).
 /// Each .NET type maps to a specific UTF-8 byte representation.
 /// </summary>
-public static class ToBytes
+internal static class ToBytes
 {
     /// <summary>
     /// Convert a value to its canonical SOPS byte representation.
@@ -61,7 +61,7 @@ public static class ToBytes
             if (double.IsNegativeInfinity(d))
                 return Encoding.UTF8.GetBytes("-Inf");
             if (d == 0.0)
-                return Encoding.UTF8.GetBytes(d < 0 ? "-0" : "0");
+                return Encoding.UTF8.GetBytes(double.IsNegative(d) ? "-0" : "0");
 
             str = d.ToString("R", CultureInfo.InvariantCulture);
         }
@@ -74,7 +74,7 @@ public static class ToBytes
             if (float.IsNegativeInfinity(f))
                 return Encoding.UTF8.GetBytes("-Inf");
             if (f == 0.0f)
-                return Encoding.UTF8.GetBytes(f < 0 ? "-0" : "0");
+                return Encoding.UTF8.GetBytes(float.IsNegative(f) ? "-0" : "0");
 
             str = f.ToString("R", CultureInfo.InvariantCulture);
         }

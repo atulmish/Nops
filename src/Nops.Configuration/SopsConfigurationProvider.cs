@@ -17,18 +17,20 @@ namespace Nops.Configuration;
 /// IConfigurationProvider that loads SOPS-encrypted files and exposes them as key-value pairs.
 /// Supports YAML, JSON, Dotenv, INI, and Binary formats.
 /// </summary>
-public class SopsConfigurationProvider : ConfigurationProvider
+public class SopsConfigurationProvider : ConfigurationProvider, IDisposable
 {
-    private readonly SopsOptions _options;
+    private readonly SopsConfigurationOptions _options;
     private readonly string _filePath;
     private readonly string _fileKind;
     private FileSystemWatcher? _watcher;
+    private CancellationTokenSource? _pendingReload;
+    private readonly object _reloadLock = new();
     private bool _disposed;
 
     /// <summary>
     /// Create a new SOPS configuration provider.
     /// </summary>
-    public SopsConfigurationProvider(SopsOptions options)
+    public SopsConfigurationProvider(SopsConfigurationOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
 
@@ -53,19 +55,18 @@ public class SopsConfigurationProvider : ConfigurationProvider
 
     /// <summary>
     /// Load and decrypt the SOPS file, populating the Data dictionary.
+    /// A missing file is tolerated only when <see cref="SopsConfigurationOptions.Optional"/> is set;
+    /// every other failure throws.
     /// </summary>
     public override void Load()
     {
-        try
+        if (_options.Optional && !File.Exists(_filePath))
         {
-            Reload();
-        }
-        catch (Exception ex) when (_options.FileNotFoundMode == FileNotFoundMode.WarnAndContinue || _options.Optional)
-        {
-            // Log warning but don't throw
-            System.Diagnostics.Debug.WriteLine($"SOPS configuration load failed: {ex.Message}");
             Data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            return;
         }
+
+        Reload();
     }
 
     /// <summary>
@@ -130,12 +131,7 @@ public class SopsConfigurationProvider : ConfigurationProvider
     private byte[] ReadFile()
     {
         if (!File.Exists(_filePath))
-        {
-            if (_options.FileNotFoundMode == FileNotFoundMode.Throw && !_options.Optional)
-                throw new FileNotFoundException($"SOPS file not found: {_filePath}", _filePath);
-
-            return Array.Empty<byte>();
-        }
+            throw new FileNotFoundException($"SOPS file not found: {_filePath}", _filePath);
 
         var fileInfo = new FileInfo(_filePath);
 
@@ -149,39 +145,61 @@ public class SopsConfigurationProvider : ConfigurationProvider
     }
 
     /// <summary>
-    /// Set up FileSystemWatcher for automatic reload.
+    /// Set up FileSystemWatcher for automatic reload. The directory is watched (not just the file) so that
+    /// atomic replacements are seen: editors that write a temp file and rename it, and Kubernetes Secret and
+    /// ConfigMap volumes, which swap a <c>..data</c> symlink instead of rewriting the file.
     /// </summary>
     private void SetupWatcher()
     {
         var directory = Path.GetDirectoryName(_filePath) ?? ".";
-        var fileName = Path.GetFileName(_filePath);
 
-        _watcher = new FileSystemWatcher(directory, fileName)
+        _watcher = new FileSystemWatcher(directory)
         {
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName
+                | NotifyFilters.DirectoryName | NotifyFilters.CreationTime
         };
 
         _watcher.Changed += OnFileChanged;
+        _watcher.Created += OnFileChanged;
+        _watcher.Renamed += OnFileChanged;
         _watcher.EnableRaisingEvents = true;
     }
 
     /// <summary>
-    /// Handle file change events with debouncing.
+    /// Handle file change events. Bursts of events collapse into one reload after the debounce interval.
     /// </summary>
     private void OnFileChanged(object sender, FileSystemEventArgs e)
     {
-        var interval = _options.ReloadInterval ?? TimeSpan.FromMilliseconds(250);
+        // Our file, or the symlink a Kubernetes volume swaps to publish an update.
+        if (e.Name != Path.GetFileName(_filePath) && e.Name != "..data")
+            return;
 
-        Task.Delay(interval).ContinueWith(_ =>
+        var interval = _options.ReloadInterval ?? TimeSpan.FromMilliseconds(250);
+        CancellationToken token;
+        lock (_reloadLock)
         {
+            if (_disposed)
+                return;
+            _pendingReload?.Cancel();
+            _pendingReload?.Dispose();
+            _pendingReload = new CancellationTokenSource();
+            token = _pendingReload.Token;
+        }
+
+        Task.Delay(interval, token).ContinueWith(t =>
+        {
+            if (t.IsCanceled)
+                return;
+
             try
             {
                 Reload();
                 OnReload();
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore errors during reload - the next explicit load will pick up changes
+                // Keep the previous values: a half-written or undecryptable file must not wipe the config.
+                try { _options.OnReloadError?.Invoke(ex); } catch { /* a faulty callback must not crash the process */ }
             }
         }, TaskScheduler.Default);
     }
@@ -204,13 +222,19 @@ public class SopsConfigurationProvider : ConfigurationProvider
     }
 
     /// <summary>
-    /// Dispose the watcher.
+    /// Stop watching the file.
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        lock (_reloadLock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _pendingReload?.Cancel();
+            _pendingReload?.Dispose();
+            _pendingReload = null;
+        }
 
         _watcher?.Dispose();
-        _disposed = true;
     }
 }

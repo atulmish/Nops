@@ -154,8 +154,8 @@ public class SopsFixtureTests
             ReadFixture("comments.sops.yaml"), "yaml", Options());
 
         var comments = tree.Branches[0]
-            .Where(i => i.Key is Nops.Core.Stores.Comment)
-            .Select(i => ((Nops.Core.Stores.Comment)i.Key).Value)
+            .Where(i => i.Key is Nops.Core.Comment)
+            .Select(i => ((Nops.Core.Comment)i.Key).Value)
             .ToList();
 
         // The leading space is preserved: sops strips only the '#'.
@@ -331,12 +331,12 @@ public class SopsFixtureTests
         {
             Age = new[]
             {
-                new Nops.Core.Stores.AgeEntry("age1first", "enc-first"),
-                new Nops.Core.Stores.AgeEntry("age1second", "enc-second"),
+                new Nops.Core.AgeEntry("age1first", "enc-first"),
+                new Nops.Core.AgeEntry("age1second", "enc-second"),
             },
             LastModified = lastModified,
         };
-        var tree = new Nops.Core.Stores.SopsTree(loaded.Branches, metadata, loaded.FilePath);
+        var tree = new Nops.Core.SopsTree(loaded.Branches, metadata, loaded.FilePath);
 
         var text = Nops.Core.Stores.DotenvStore.FlattenToDotenv(tree);
         var reloaded = Nops.Core.Stores.DotenvStore.LoadEncrypted(Encoding.UTF8.GetBytes(text), "roundtrip.env");
@@ -355,7 +355,7 @@ public class SopsFixtureTests
         var text = Encoding.UTF8.GetString(bytes).Replace("public data 1", "public data X");
         var tampered = Encoding.UTF8.GetBytes(text);
 
-        await Assert.ThrowsAsync<Nops.Core.Stores.MacMismatchException>(() =>
+        await Assert.ThrowsAsync<Nops.Core.MacMismatchException>(() =>
             SopsFile.DecryptToDictionaryAsync(tampered, "yaml", Options()));
     }
 

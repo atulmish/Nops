@@ -1,0 +1,15 @@
+blob: hello bytes
+items:
+    - "\x01\x02\x03"
+    - plain
+    - 7
+matrix:
+    - - 1
+      - 2
+    - - a
+      - b
+empty_list: []
+nothing: null
+when: 2024-05-06T07:08:09Z
+ratio: 0.25
+flag: true

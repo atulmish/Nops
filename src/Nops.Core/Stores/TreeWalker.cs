@@ -9,7 +9,7 @@ namespace Nops.Core.Stores;
 /// and shouldBeEncrypted logic per the SOPS specification (exact port of
 /// walkBranch/walkSlice/walkValue/shouldBeEncrypted from sops.go).
 /// </summary>
-public static class TreeWalker
+internal static class TreeWalker
 {
     /// <summary>
     /// Compute Additional Authenticated Data (AAD) for GCM encryption.

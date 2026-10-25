@@ -15,7 +15,7 @@ namespace Nops.Core.Keys;
 public interface IMasterKeyProvider
 {
     /// <summary>
-    /// Key type identifier (e.g., "age", "pgp", "aws_kms", "gcp_kms", "azure_kv", "hckms", "hc_vault").
+    /// Key type identifier (e.g., "age", "pgp", "aws_kms", "gcp_kms", "azure_kv", "hc_vault").
     /// </summary>
     string KeyType { get; }
 
@@ -30,7 +30,7 @@ public interface IMasterKeyProvider
 /// Resolves the SOPS data key from the key groups in the .sops metadata.
 /// Handles both single-group (any key works) and multi-group (Shamir secret sharing).
 /// </summary>
-public static class DataKeyResolver
+internal static class DataKeyResolver
 {
     /// <summary>
     /// Resolve the 32-byte data key from SOPS metadata and available master keys.
@@ -50,11 +50,12 @@ public static class DataKeyResolver
         // An explicit "unsupported key / missing passphrase" error from one provider must not
         // stop other keys being tried; it is only surfaced if nothing else succeeds.
         NotSupportedException? unsupported = null;
+        Exception? lastError = null;
 
         if (groups.Count == 1)
         {
             var dataKey = await TryDecryptGroupAsync(groups[0], providers, ct, singleGroup: true,
-                ex => unsupported ??= ex);
+                ex => unsupported ??= ex, ex => lastError = ex);
             if (dataKey != null)
                 return dataKey;
 
@@ -63,7 +64,7 @@ public static class DataKeyResolver
 
             throw new InvalidOperationException(
                 $"Cannot decrypt: none of the {providers.Count} configured master key(s) could decrypt the data key. " +
-                DescribeRecipients(groups));
+                DescribeRecipients(groups) + DescribeLastError(lastError));
         }
 
         // Multiple key groups: Shamir secret sharing. Collect >= threshold shares.
@@ -73,7 +74,7 @@ public static class DataKeyResolver
         foreach (var group in groups)
         {
             var share = await TryDecryptGroupAsync(group, providers, ct, singleGroup: false,
-                ex => unsupported ??= ex);
+                ex => unsupported ??= ex, ex => lastError = ex);
             if (share != null)
             {
                 collected.Add(share);
@@ -88,7 +89,7 @@ public static class DataKeyResolver
         if (collected.Count < threshold)
             throw new InvalidOperationException(
                 $"Cannot decrypt: need {threshold} shares but only got {collected.Count} from {groups.Count} key group(s). " +
-                DescribeRecipients(groups));
+                DescribeRecipients(groups) + DescribeLastError(lastError));
 
         return Shamir.Combine(collected.ToArray());
     }
@@ -129,6 +130,13 @@ public static class DataKeyResolver
         return flat.Count > 0 ? new List<KeyGroup> { new(flat) } : Array.Empty<KeyGroup>();
     }
 
+    /// <summary>
+    /// A provider that failed with an error (a tampered age blob, an unreachable KMS) rather than
+    /// just "not my key": say so, because "none of the keys could decrypt" would hide the cause.
+    /// </summary>
+    private static string DescribeLastError(Exception? lastError) =>
+        lastError == null ? "" : $" Last error: {lastError.GetType().Name}: {lastError.Message}";
+
     private static string DescribeRecipients(IReadOnlyList<KeyGroup> groups)
     {
         var types = groups.SelectMany(g => g.Keys)
@@ -141,7 +149,7 @@ public static class DataKeyResolver
 
     private static async Task<byte[]?> TryDecryptGroupAsync(
         KeyGroup group, IReadOnlyList<IMasterKeyProvider> providers, CancellationToken ct, bool singleGroup,
-        Action<NotSupportedException> onUnsupported)
+        Action<NotSupportedException> onUnsupported, Action<Exception> onFailure)
     {
         foreach (var entry in group.Keys)
         {
@@ -172,9 +180,10 @@ public static class DataKeyResolver
                     // Explicit "unsupported key / missing passphrase": record it and keep trying.
                     onUnsupported(ex);
                 }
-                catch (Exception)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    // Try the next master key.
+                    // Remember why, then try the next master key.
+                    onFailure(ex);
                 }
             }
         }

@@ -1,73 +1,65 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Age;
-using Age.Recipients;
 
 namespace Nops.Core.Keys;
 
 /// <summary>
 /// Master key provider for age (age-encryption.org/v1) keys.
-/// Uses AgeSharp for X25519 + scrypt/ML-KEM-768 + ChaCha20-Poly1305 decryption.
+/// Decrypts X25519 recipients (what sops uses to wrap its data key); passphrase, post-quantum
+/// and plugin recipients are not supported.
 /// </summary>
 public class AgeMasterKey : IMasterKeyProvider
 {
-    public string KeyType => "age";
-
     /// <summary>
-    /// The age recipient (bech32 string starting with "age1..."). Optional; used only
-    /// as an optimization hint - the private key's own recipient determines which
-    /// stanzas it can unwrap.
+    /// The key type identifier ("age").
     /// </summary>
-    public string? Recipient { get; }
+    public string KeyType => "age";
 
     /// <summary>
     /// The age private key (Bech32 string starting with "AGE-SECRET-KEY-1...").
     /// </summary>
-    public string? PrivateKey { get; }
+    public string PrivateKey { get; }
 
-    public AgeMasterKey(string? recipient, string? privateKey = null)
+    /// <summary>
+    /// Creates an age master key from a private key.
+    /// </summary>
+    /// <param name="privateKey">The age private key (Bech32 string starting with "AGE-SECRET-KEY-1...").</param>
+    public AgeMasterKey(string privateKey)
     {
-        Recipient = recipient;
-        PrivateKey = privateKey;
+        PrivateKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
     }
 
     /// <summary>
     /// Decrypt the encrypted data key share using age.
-    /// Returns null if this key cannot decrypt (no private key or parse error).
-    /// The identity only matches stanzas addressed to its own public key, so no
-    /// explicit recipient comparison is needed.
+    /// Returns null if this key cannot decrypt it: the private key is not valid or the file is
+    /// not addressed to it. A malformed or tampered age blob throws <see cref="InvalidDataException"/>.
     /// </summary>
     public Task<byte[]?> DecryptShareAsync(string enc, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(enc))
             return Task.FromResult<byte[]?>(null);
 
-        if (string.IsNullOrEmpty(PrivateKey))
-            return Task.FromResult<byte[]?>(null);
-
-        X25519Identity? identity = null;
+        byte[]? scalar = null;
         try
         {
-            identity = X25519Identity.Parse(PrivateKey);
-            if (identity == null)
+            if (!AgeDecryptor.TryParseIdentity(PrivateKey, out scalar))
                 return Task.FromResult<byte[]?>(null);
 
-            using var input = new MemoryStream(Encoding.UTF8.GetBytes(enc));
-            using var output = new MemoryStream();
-            AgeEncrypt.Decrypt(input, output, new[] { identity });
-            return Task.FromResult<byte[]?>(output.ToArray());
+            return Task.FromResult<byte[]?>(AgeDecryptor.Decrypt(Encoding.UTF8.GetBytes(enc), scalar));
         }
-        catch (Exception)
+        catch (AgeDecryptor.AgeIdentityMismatchException)
         {
-            // Parse errors, no matching stanza, or other issues → try next key.
+            // The file is not addressed to this identity: let the next key try.
             return Task.FromResult<byte[]?>(null);
         }
         finally
         {
-            identity?.Dispose();
+            if (scalar != null)
+                CryptographicOperations.ZeroMemory(scalar);
         }
     }
 }

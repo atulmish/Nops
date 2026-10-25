@@ -7,7 +7,7 @@ namespace Nops.Core.Tests.Stores;
 
 public class TreeWalkerTests
 {
-    private static Nops.Core.Stores.SopsMetadata CreateMetadata(
+    private static Nops.Core.SopsMetadata CreateMetadata(
         string? unencryptedSuffix = null,
         string? encryptedSuffix = null,
         string? unencryptedRegex = null,
@@ -15,9 +15,9 @@ public class TreeWalkerTests
         string? unencryptedCommentRegex = null,
         string? encryptedCommentRegex = null)
     {
-        return new Nops.Core.Stores.SopsMetadata(
-            null, Array.Empty<Nops.Core.Stores.AgeEntry>(),
-            Array.Empty<Nops.Core.Stores.PgpEntry>(), Array.Empty<object>(),
+        return new Nops.Core.SopsMetadata(
+            null, Array.Empty<Nops.Core.AgeEntry>(),
+            Array.Empty<Nops.Core.PgpEntry>(), Array.Empty<object>(),
             Array.Empty<object>(), Array.Empty<object>(),
             Array.Empty<object>(), Array.Empty<object>(),
             0, unencryptedSuffix, encryptedSuffix,

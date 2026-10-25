@@ -8,7 +8,7 @@ namespace Nops.Configuration;
 /// Options for SOPS configuration provider.
 /// Fluent builder pattern - all properties are optional with sensible defaults.
 /// </summary>
-public class SopsOptions
+public class SopsConfigurationOptions
 {
     /// <summary>
     /// Path to the SOPS-encrypted file to load. Required.
@@ -56,15 +56,18 @@ public class SopsOptions
     public TimeSpan? ReloadInterval { get; set; }
 
     /// <summary>
-    /// Whether the file is optional (no exception if missing).
-    /// Default: false - throws SopsException if file not found.
+    /// Whether the file may be missing. When <c>true</c> and the file does not exist, the source
+    /// contributes no values. Any other failure (wrong key, tampered file, unreadable file) still
+    /// throws, so a required secret can never silently disappear. Default: <c>false</c>, which throws
+    /// <see cref="System.IO.FileNotFoundException"/> if the file is missing.
     /// </summary>
     public bool Optional { get; set; }
 
     /// <summary>
-    /// Error handling mode for missing or unreadable files.
+    /// Called when a reload triggered by <see cref="WatchForChanges"/> fails (for example the file was
+    /// replaced with one the keys cannot decrypt). The previously loaded values stay in place. Use it to log.
     /// </summary>
-    public FileNotFoundMode FileNotFoundMode { get; set; } = FileNotFoundMode.Throw;
+    public Action<Exception>? OnReloadError { get; set; }
 
     /// <summary>
     /// Maximum file size to read (default: 10MB). Larger files will be rejected.
@@ -78,10 +81,9 @@ public class SopsOptions
     public Func<byte[], string, CancellationToken, System.Threading.Tasks.Task<IReadOnlyDictionary<string, string>>>? DecryptCallback { get; set; }
 
     /// <summary>
-    /// Build the master key providers from AgeIdentities and PgpKeys.
-    /// Called automatically if MasterKeys is null when needed.
+    /// Build the master key providers from AgeIdentities and PgpKeys, or return MasterKeys when set.
     /// </summary>
-    public IReadOnlyList<IMasterKeyProvider> ResolveMasterKeys()
+    internal IReadOnlyList<IMasterKeyProvider> ResolveMasterKeys()
     {
         if (MasterKeys != null)
             return MasterKeys;
@@ -95,7 +97,7 @@ public class SopsOptions
                 // Accept a Bech32 "AGE-SECRET-KEY-..." string or a path to a file
                 // containing one or more such keys.
                 foreach (var key in Nops.Core.Keys.AgeIdentityLoader.Load(identity))
-                    keys.Add(new Nops.Core.Keys.AgeMasterKey(recipient: null, privateKey: key));
+                    keys.Add(new Nops.Core.Keys.AgeMasterKey(key));
             }
         }
 
@@ -109,25 +111,4 @@ public class SopsOptions
 
         return keys;
     }
-}
-
-/// <summary>
-/// How to handle missing or unreadable SOPS files.
-/// </summary>
-public enum FileNotFoundMode
-{
-    /// <summary>
-    /// Throw a SopsException if the file is not found or cannot be read.
-    /// </summary>
-    Throw,
-
-    /// <summary>
-    /// Log a warning and return empty configuration (no values loaded).
-    /// </summary>
-    WarnAndContinue,
-
-    /// <summary>
-    /// Silently ignore missing files - no values loaded, no warnings.
-    /// </summary>
-    Ignore
 }

@@ -21,7 +21,7 @@ namespace Nops.Core.Stores;
 /// comments become <see cref="Comment"/> items, and comment-based encryption rules
 /// (encrypted_comment_regex / unencrypted_comment_regex) work.
 /// </summary>
-public static class YamlStore
+internal static class YamlStore
 {
     /// <summary>
     /// Load a SOPS-encrypted YAML file and parse it into an ordered tree.

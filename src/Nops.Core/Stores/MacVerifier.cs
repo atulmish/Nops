@@ -13,7 +13,7 @@ namespace Nops.Core.Stores;
 /// stored MAC, which is itself encrypted with the data key using the file's
 /// lastmodified timestamp (RFC3339) as additional authenticated data.
 /// </summary>
-public static class MacVerifier
+internal static class MacVerifier
 {
     /// <summary>
     /// Fixed seed prefix used when mac_only_encrypted is true.
@@ -46,7 +46,7 @@ public static class MacVerifier
         var expectedMac = DecryptStoredMac(tree.Metadata.Mac, dataKey, tree.Metadata);
 
         if (!ConstantTimeEquals(expectedMac, computedMacHex) && throwOnMismatch)
-            throw new MacMismatchException($"MAC verification failed: expected {expectedMac}, got {computedMacHex}");
+            throw new MacMismatchException("MAC verification failed: the file was modified without sops, or is truncated or corrupt. Edit encrypted files with `sops edit`.");
     }
 
     /// <summary>
@@ -89,12 +89,4 @@ public static class MacVerifier
 
         return diff == 0;
     }
-}
-
-/// <summary>
-/// Exception thrown when MAC verification fails.
-/// </summary>
-public class MacMismatchException : Exception
-{
-    public MacMismatchException(string message) : base(message) { }
 }

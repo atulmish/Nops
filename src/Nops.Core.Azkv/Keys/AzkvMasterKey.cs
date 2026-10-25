@@ -14,7 +14,7 @@ namespace Nops.Core.Keys;
 /// <summary>
 /// Represents a Key Vault key entry from .sops metadata.
 /// </summary>
-public sealed record AzkvEntry(
+internal sealed record AzkvEntry(
     string VaultUrl,
     string KeyName,
     string? KeyVersion,
@@ -82,8 +82,7 @@ public class AzkvMasterKey : IMasterKeyProvider
     /// </summary>
     public async Task<byte[]?> DecryptShareAsync(string enc, CancellationToken ct = default)
     {
-        var credential = Credential ?? new DefaultAzureCredential();
-        var client = Client ?? new KeyClient(new Uri(VaultUrl), credential);
+        var client = Client ?? new KeyClient(new Uri(VaultUrl), Credential ?? new DefaultAzureCredential());
 
         try
         {
@@ -91,7 +90,8 @@ public class AzkvMasterKey : IMasterKeyProvider
                 ? await client.GetKeyAsync(KeyName, cancellationToken: ct)
                 : await client.GetKeyAsync(KeyName, KeyVersion, cancellationToken: ct);
 
-            var crypto = new CryptographyClient(key.Id, credential);
+            // Built from the KeyClient so a caller-supplied client's credential and options are used.
+            var crypto = client.GetCryptographyClient(key.Name, key.Properties.Version);
             var result = await crypto.UnwrapKeyAsync(KeyWrapAlgorithm.RsaOaep256, Convert.FromBase64String(enc), ct);
 
             return result.Key;
@@ -113,18 +113,18 @@ public class AzkvMasterKey : IMasterKeyProvider
 /// <summary>
 /// Helper to parse opaque Azure KV entries from .sops metadata into typed AzkvEntry objects.
 /// </summary>
-public static class AzkvEntryParser
+internal static class AzkvEntryParser
 {
     /// <summary>
     /// Parse a single opaque Azure KV dict entry (from SopsMetadata.AzureKv) into an AzkvEntry.
-    /// Each entry is a Dictionary&lt;string, object&gt; with keys: vault, name, version, enc, created_at.
+    /// Each entry is a Dictionary&lt;string, object&gt; with keys as written by sops: vaultUrl, name, version, enc, created_at.
     /// </summary>
     public static AzkvEntry Parse(object entry)
     {
         if (entry is not Dictionary<string, object> dict)
             throw new ArgumentException("Azure KV entry must be a dictionary", nameof(entry));
 
-        string vault = ExtractString(dict, "vault") ?? throw new ArgumentException("Azure KV entry missing 'vault'", nameof(entry));
+        string vault = ExtractString(dict, "vaultUrl") ?? throw new ArgumentException("Azure KV entry missing 'vaultUrl'", nameof(entry));
         string name = ExtractString(dict, "name") ?? throw new ArgumentException("Azure KV entry missing 'name'", nameof(entry));
         string enc = ExtractString(dict, "enc") ?? throw new ArgumentException("Azure KV entry missing 'enc'", nameof(entry));
 

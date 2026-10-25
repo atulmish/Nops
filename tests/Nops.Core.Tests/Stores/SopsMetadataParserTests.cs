@@ -182,7 +182,7 @@ public class SopsMetadataParserTests
             ["encrypted_regex"] = "^(secret)$",
         };
 
-        Assert.Throws<Nops.Core.Stores.SopsMetadataException>(
+        Assert.Throws<Nops.Core.SopsMetadataException>(
             () => Nops.Core.Stores.SopsMetadataParser.Parse(dict));
     }
 

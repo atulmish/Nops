@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Nops.Core.Stores;
+namespace Nops.Core;
 
 /// <summary>
 /// Represents a YAML/Dotenv comment node in the tree.
@@ -27,8 +27,10 @@ public sealed class TreeBranch : List<TreeItem>
     /// </summary>
     public bool IsSequence { get; set; }
 
+    /// <summary>Creates an empty map branch.</summary>
     public TreeBranch() { }
 
+    /// <summary>Creates an empty branch that is a sequence when <paramref name="isSequence"/> is true.</summary>
     public TreeBranch(bool isSequence) => IsSequence = isSequence;
 }
 

@@ -9,7 +9,7 @@ namespace Nops.Core.Stores;
 /// Handles both the flat key lists (age/pgp/kms/...) and the nested
 /// <c>key_groups</c> form used for Shamir secret sharing.
 /// </summary>
-public static class SopsMetadataParser
+internal static class SopsMetadataParser
 {
     /// <summary>
     /// Default suffix that marks a value as unencrypted. Applied when the file
@@ -237,12 +237,4 @@ public static class SopsMetadataParser
         }
         return null;
     }
-}
-
-/// <summary>
-/// Thrown when the .sops metadata is structurally invalid.
-/// </summary>
-public sealed class SopsMetadataException : Exception
-{
-    public SopsMetadataException(string message) : base(message) { }
 }

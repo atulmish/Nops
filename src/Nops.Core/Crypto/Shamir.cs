@@ -9,7 +9,7 @@ namespace Nops.Core.Crypto;
 /// Shamir's Secret Sharing over GF(2^8).
 /// Port of sops/shamir/shamir.go with exact GF(2^8) arithmetic.
 /// </summary>
-public static class Shamir
+internal static class Shamir
 {
     // Irreducible polynomial: x^8 + x^4 + x^3 + x + 1 = 0x11B
     private const int IrreduciblePoly = 0x11B;

@@ -9,7 +9,7 @@ namespace Nops.Core.Stores;
 /// <summary>
 /// Store for Dotenv files. Handles sops_* flat prefix and newline escaping.
 /// </summary>
-public static class DotenvStore
+internal static class DotenvStore
 {
     private const string MetadataFlattenFull = "sops_";
 

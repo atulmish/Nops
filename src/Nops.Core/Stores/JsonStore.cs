@@ -10,7 +10,7 @@ namespace Nops.Core.Stores;
 /// Store for JSON files. Parses JSON into ordered TreeBranches (preserving nested
 /// objects and arrays) and extracts .sops metadata.
 /// </summary>
-public static class JsonStore
+internal static class JsonStore
 {
     /// <summary>
     /// Load a SOPS-encrypted JSON file and parse it into an ordered tree.
