@@ -5,7 +5,7 @@ AWS KMS master key provider for [Nops](https://github.com/atulmish/Nops) - in-pr
 ## Installation
 
 ```bash
-dotnet add package Nops.Core.AwsKms --prerelease
+dotnet add package Nops.Core.AwsKms
 ```
 
 ## Usage
@@ -121,13 +121,12 @@ Unit tests run without dependencies:
 dotnet test tests/Nops.Core.AwsKms.Tests --filter FullyQualifiedName~AwsKmsEntryParserTests
 ```
 
-Integration tests require LocalStack:
+Integration tests need a KMS endpoint (for example LocalStack, started as shown above):
 
 ```bash
-docker-compose -f tests/docker-compose.localstack.yml up -d
 AWS_LIVE_TEST=1 dotnet test tests/Nops.Core.AwsKms.Tests --filter FullyQualifiedName~AwsKmsIntegrationTests
 ```
 
 ## License
 
-MIT - see [LICENSE](../../LICENSE).
+MIT - see [LICENSE](https://github.com/atulmish/Nops/blob/main/LICENSE).

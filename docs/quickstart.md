@@ -21,15 +21,16 @@ sops -e --age "$(age-keygen -y ~/.config/sops/age/keys.txt)" secrets.yaml > secr
 rm secrets.yaml
 ```
 
-For a team, add a [`.sops.yaml`](https://getsops.io/docs/) with `creation_rules` so `sops -e` and `sops edit` pick the recipients for you (see [`samples/.sops.yaml`](../samples/.sops.yaml)).
+For a team, add a [`.sops.yaml`](https://getsops.io/docs/) with `creation_rules` so `sops -e` and `sops edit` pick the recipients for you (see [`samples/.sops.yaml`](https://github.com/atulmish/Nops/blob/main/samples/.sops.yaml)).
 
 ## 2. Load it as configuration
 
 ```bash
-dotnet add package Nops.Configuration --prerelease
+dotnet add package Nops.Configuration
 ```
 
 ```csharp
+using System.ComponentModel.DataAnnotations;
 using Nops.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,7 +65,7 @@ builder.Configuration.AddSops("secrets.sops.yaml", opts =>
 ## 3. Or decrypt without configuration
 
 ```bash
-dotnet add package Nops.Core --prerelease
+dotnet add package Nops.Core
 ```
 
 ```csharp
@@ -92,10 +93,12 @@ Both samples ship a `secrets.sops.yaml` encrypted with the repository's TEST-ONL
 ```bash
 cd samples/ConfigurationSample && dotnet run      # generic host, validated options
 cd samples/MinimalApiSample && dotnet run         # then: curl http://localhost:5080/
+cd samples/LayeredConfigSample && dotnet run      # appsettings.json + secrets file, shows each value's source
 ```
 
 ## Next steps
 
 - [Configuration reference](configuration.md): all options, key flattening, reload, error handling
+- [Deploying with Nops](deployment.md): config layout, Kubernetes and Docker, key rotation, troubleshooting
 - [Cloud KMS setup](cloud-kms.md): AWS, GCP, Azure Key Vault, HashiCorp Vault
 - [Test keys](test-keys.md): how fixtures and test keys are managed

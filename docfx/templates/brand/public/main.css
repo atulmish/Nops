@@ -1,0 +1,18 @@
+/* Nops brand: teal accent on the DocFX modern template. */
+:root {
+  --bs-link-color: #0d9488;
+  --bs-link-hover-color: #0f766e;
+}
+
+[data-bs-theme="dark"] {
+  --bs-link-color: #2dd4bf;
+  --bs-link-hover-color: #5eead4;
+}
+
+.nops-hero img { max-width: 100%; height: auto; border-radius: 16px; }
+.nops-cta { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0 2.5rem; }
+.nops-cta a { padding: .6rem 1.1rem; border-radius: 999px; border: 1.5px solid #14b8a6; text-decoration: none; font-weight: 600; }
+.nops-cta a.primary { background: linear-gradient(135deg, #14b8a6, #6366f1); border-color: transparent; color: #fff; }
+
+/* The modern template does not size the logo: keep it navbar-sized. */
+.navbar-brand img, #logo { height: 30px; width: 30px; }

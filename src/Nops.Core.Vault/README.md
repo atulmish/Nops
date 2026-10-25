@@ -1,11 +1,11 @@
 # Nops.Core.Vault
 
-HashiCorp Vault Transit and HCKMS master key providers for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
+HashiCorp Vault Transit master key provider for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
 
 ## Installation
 
 ```bash
-dotnet add package Nops.Core.Vault --prerelease
+dotnet add package Nops.Core.Vault
 ```
 
 ## Usage
@@ -45,19 +45,6 @@ var result = await SopsFile.DecryptTreeAsync(
     });
 ```
 
-### HashiCorp Cloud KMS (HCKMS)
-
-```csharp
-// HCKMS is accessed via Vault Transit endpoint that proxies to GCP KMS
-var hckmsKey = new HckmsMasterKey(
-    projectId: "my-gcp-project",
-    location: "global",
-    keyRing: "my-keyring",
-    cryptoKey: "my-hckms-key",
-    vaultToken: "s.vault-token-here"  // required for Vault-mediated access
-);
-```
-
 ## Authentication
 
 ### Local Development with `vault dev`
@@ -90,13 +77,11 @@ vault write -f transit/keys/sops-key
 vault secrets enable transit
 
 # Create a transit key
-vault write -f transit/keys/sops-wrapping-key \
-    type=rsa-4096 \
-    convergent-encryption=true
+vault write -f transit/keys/sops-wrapping-key
 
-# Grant permissions to your identity
-vault policy write sops-policy <<EOF
-path "transit/data/sops-wrapping-key" {
+# Grant permissions to your identity (decrypting needs "update" on the decrypt path)
+vault policy write sops-policy - <<EOF
+path "transit/decrypt/sops-wrapping-key" {
   capabilities = ["update"]
 }
 EOF
@@ -104,19 +89,14 @@ EOF
 
 ## Running Tests
 
-Unit tests run without dependencies:
+The unit tests need no Vault server. They use a mock `HttpClient`, plus a file written by real `sops` against a mock transit engine (see `tests/Nops.Core.Vault.Tests/Fixtures/README.md`):
 
 ```bash
-dotnet test tests/Nops.Core.Vault.Tests --filter FullyQualifiedName~VaultEntryParserTests
-```
-
-Integration tests require a running Vault server:
-
-```bash
-docker run -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=root -e VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200 vault:latest dev
-VAULT_ADDR=http://localhost:8200 dotnet test tests/Nops.Core.Vault.Tests --filter FullyQualifiedName~VaultIntegrationTests
+dotnet test tests/Nops.Core.Vault.Tests
 ```
 
 ## License
 
-MIT - see [LICENSE](../../LICENSE).
+MIT - see [LICENSE](https://github.com/atulmish/Nops/blob/main/LICENSE).
+
+> sops' `hckms` key type is **Huawei Cloud KMS**, which Nops does not support.

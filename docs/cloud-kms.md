@@ -1,6 +1,6 @@
 # Cloud KMS Setup - Nops
 
-Configuration for AWS KMS, Google Cloud KMS, Azure Key Vault, and HashiCorp Vault.
+Configuration for AWS KMS, Google Cloud KMS, Azure Key Vault, and HashiCorp Vault Transit.
 
 ## Overview
 
@@ -12,7 +12,8 @@ Nops supports decrypting data key shares encrypted under cloud KMS keys. Each pr
 | Google Cloud KMS | `Nops.Core.GcpKms` | `gcp_kms` |
 | Azure Key Vault | `Nops.Core.Azkv` | `azure_kv` |
 | HashiCorp Vault Transit | `Nops.Core.Vault` | `hc_vault` |
-| HashiCorp Cloud KMS | `Nops.Core.Vault` | `hckms` |
+
+> **Not supported:** sops' `hckms` key type is Huawei Cloud KMS. Files encrypted only for it cannot be decrypted by Nops.
 
 ### Using a provider
 
@@ -38,7 +39,7 @@ alongside `MasterKeys`.
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.AwsKms --prerelease
+dotnet add package Nops.Core.AwsKms
 ```
 
 ### Authentication
@@ -111,7 +112,7 @@ var masterKey = new AwsKmsMasterKey(
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.GcpKms --prerelease
+dotnet add package Nops.Core.GcpKms
 ```
 
 ### Authentication
@@ -154,7 +155,7 @@ Or custom policy:
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.Azkv --prerelease
+dotnet add package Nops.Core.Azkv
 ```
 
 ### Authentication
@@ -189,7 +190,7 @@ az keyvault set-policy --name my-vault --upn you@example.com --key-permissions u
 ### Installation
 
 ```bash
-dotnet add package Nops.Core.Vault --prerelease
+dotnet add package Nops.Core.Vault
 ```
 
 ### Authentication
@@ -217,22 +218,6 @@ export VAULT_ADDR=http://127.0.0.1:8200
 
 vault secrets enable transit
 vault write -f transit/keys/sops-key
-```
-
-## HashiCorp Cloud KMS (HCKMS)
-
-HCKMS is accessed via Vault Transit endpoint that proxies to GCP KMS:
-
-```csharp
-using Nops.Core.Keys;
-
-var masterKey = new HckmsMasterKey(
-    projectId: "my-gcp-project",
-    location: "global",
-    keyRing: "my-keyring",
-    cryptoKey: "my-hckms-key",
-    vaultToken: "s.vault-token-here"
-);
 ```
 
 ## Multi-Provider Support

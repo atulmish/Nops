@@ -7,7 +7,7 @@ plain `ConfigurationBuilder`; it does not depend on the ASP.NET Core shared fram
 ## Installation
 
 ```bash
-dotnet add package Nops.Configuration --prerelease
+dotnet add package Nops.Configuration
 ```
 
 ## Basic Usage
@@ -30,7 +30,7 @@ and the command line are already added by `WebApplication.CreateBuilder`, so cal
 `builder.Configuration.AddEnvironmentVariables()` again after `AddSops` if
 environment variables must win).
 
-Relative paths are resolved against the current working directory. For services whose
+Relative paths are resolved against the current working directory (not the content root, which `AddJsonFile` uses). For services whose
 working directory is not the app folder, pass
 `Path.Combine(AppContext.BaseDirectory, "secrets.sops.yaml")`.
 
@@ -63,8 +63,7 @@ builder.Configuration.AddSops("secrets.sops.yaml", opts =>
     opts.ReloadInterval = TimeSpan.FromMilliseconds(250);  // Debounce
     
     // Handle missing files gracefully
-    opts.Optional = false;           // Throw if missing (default)
-    opts.FileNotFoundMode = FileNotFoundMode.WarnAndContinue;
+    opts.Optional = false;           // Throw if the file is missing (default)
     
     // Maximum file size (default: 10MB)
     opts.MaxFileSize = 50 * 1024 * 1024;
@@ -153,7 +152,7 @@ builder.Configuration.AddSops("secrets.sops.yaml", opts =>
 // Environment overrides (optional)
 builder.Configuration.AddSops($"secrets-{env}.sops.yaml", opts => 
 {
-    opts.Optional = true;  // Won't fail if file missing
+    opts.Optional = true;  // A missing file contributes no values; any other failure still throws
 });
 ```
 
@@ -172,23 +171,26 @@ When the file changes:
 2. `OnReload` is triggered on the `IConfigurationRoot`
 3. Any registered change tokens fire
 
-> **Note:** File watching uses `FileSystemWatcher`. On Linux, inotify limits may apply for large directories.
+> **Note:** The provider watches the file's directory, so it sees files rewritten in place, atomic replacements (write a temp file, rename it over the original) and Kubernetes Secret and ConfigMap volume updates, which swap a `..data` symlink instead of writing the file. Bursts of events collapse into one reload after `ReloadInterval`. On Linux, inotify limits may apply for large directories.
+>
+> If a reload fails (a bad key, a half-written or tampered file), the previous values stay in place and `OnReloadError` is called, so log there:
+>
+> ```csharp
+> opts.OnReloadError = ex => logger.LogError(ex, "SOPS reload failed; keeping the previous values");
+> ```
 
 ## Error Handling
 
-| Scenario | Default Behavior | With `Optional = true` |
-|---|---|---|
-| File not found | Throw `FileNotFoundException` | Empty config (no values) |
-| MAC mismatch | Throw `MacMismatchException` | Empty config (no values) |
-| Decryption failure | Throw `InvalidOperationException` / `MacMismatchException` | Empty config (no values) |
-| File too large | Throw `InvalidOperationException` | N/A |
+| Scenario | Behavior |
+|---|---|
+| File not found | `FileNotFoundException`, or no values when `Optional = true` |
+| No usable key | `InvalidOperationException` ("Cannot decrypt: none of the N configured master key(s)..."), naming the key types the file is encrypted for. The message ends with `Last error:` when a key failed with an error rather than simply not matching (a tampered age blob, an unreachable KMS) |
+| MAC mismatch (file edited without sops, truncated) | `MacMismatchException` |
+| PGP key without its passphrase | `NotSupportedException`, only if no other key could decrypt |
+| File larger than `MaxFileSize` | `InvalidOperationException` |
+| Unknown file extension | `InvalidOperationException`: set `FileKind` |
 
-Customize with `FileNotFoundMode`:
-
-```csharp
-opts.FileNotFoundMode = FileNotFoundMode.WarnAndContinue;  // Log warning, continue
-opts.FileNotFoundMode = FileNotFoundMode.Ignore;           // Silent ignore
-```
+`Optional = true` covers **only a missing file**. A file that is present but cannot be decrypted (wrong key, failed MAC) always throws, so a required secret can never silently disappear.
 
 ## Host Builder Extension
 

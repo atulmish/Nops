@@ -5,7 +5,7 @@ Azure Key Vault master key provider for [Nops](https://github.com/atulmish/Nops)
 ## Installation
 
 ```bash
-dotnet add package Nops.Core.Azkv --prerelease
+dotnet add package Nops.Core.Azkv
 ```
 
 ## Usage
@@ -51,7 +51,7 @@ Azure Key Vault uses [DefaultAzureCredential](https://learn.microsoft.com/dotnet
 
 1. **Environment variables**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`
 2. **Azure CLI**: `az login` (interactive)
-3. **Visual Studio/Azure Developer CLI**: `dotnet azure login`
+3. **Azure Developer CLI**: `azd auth login`
 4. **Managed Identity**: Automatic when running on Azure (VM, App Service, Functions, etc.)
 
 ### Local Development
@@ -74,12 +74,12 @@ Create a wrapping key for SOPS:
 # Create Key Vault
 az keyvault create --name my-vault --location eastus --resource-group my-rg
 
-# Create a software-protected wrapping key
+# Create an RSA wrapping key (sops wraps the data key with RSA-OAEP-256)
 az keyvault key create \
     --name sops-wrapping-key \
     --vault-name my-vault \
-    --protection software \
-    --key-type RSA-HSM
+    --kty RSA --size 2048 \
+    --ops wrapKey unwrapKey
 
 # Grant your identity decrypt permissions
 az keyvault set-policy \
@@ -104,4 +104,4 @@ AZURE_LIVE_TEST=1 dotnet test tests/Nops.Core.Azkv.Tests --filter FullyQualified
 
 ## License
 
-MIT - see [LICENSE](../../LICENSE).
+MIT - see [LICENSE](https://github.com/atulmish/Nops/blob/main/LICENSE).

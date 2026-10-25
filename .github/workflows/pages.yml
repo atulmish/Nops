@@ -1,0 +1,66 @@
+name: Pages
+
+# Builds the documentation site (guides from docs/ plus the API reference generated from the
+# XML docs) with DocFX and publishes it to GitHub Pages. Pull requests only build it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "docfx/**"
+      - "src/**"
+      - "CHANGELOG.md"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "docfx/**"
+      - "src/**"
+      - "CHANGELOG.md"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install DocFX
+        run: dotnet tool install docfx --global --version 2.81.0
+
+      - name: Build site
+        run: docfx docfx/docfx.json --warningsAsErrors
+
+      - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: docfx/_site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

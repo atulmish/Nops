@@ -43,8 +43,30 @@ jobs:
       - name: Build
         run: dotnet build Nops.slnx --no-restore -c Release
 
-      - name: Run tests
-        run: dotnet test Nops.slnx --no-build -c Release --filter "FullyQualifiedName!~Integration" --verbosity normal
+      - name: Run tests with coverage
+        run: dotnet test Nops.slnx --no-build -c Release --filter "FullyQualifiedName!~Integration" --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:coverage \
+            -assemblyfilters:"+Nops.*;-*.Tests" -reporttypes:"MarkdownSummaryGithub;Cobertura"
+          cat coverage/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce line coverage
+        run: |
+          rate=$(grep -oP '<coverage[^>]*line-rate="\K[0-9.]+' coverage/Cobertura.xml | head -1)
+          pct=$(awk -v r="$rate" 'BEGIN { printf "%.1f", r * 100 }')
+          echo "Line coverage: ${pct}% (minimum 95%)"
+          awk -v r="$rate" 'BEGIN { exit (r >= 0.95) ? 0 : 1 }' || { echo "::error::Line coverage ${pct}% is below the 95% minimum"; exit 1; }
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
 
       - name: Verify no cloud refs in Nops.Core
         run: |

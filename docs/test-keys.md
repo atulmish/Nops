@@ -76,6 +76,16 @@ sops -e --pgp "$FP" pgp.yaml > pgp.sops.yaml
 
 Update `PgpTestFingerprint` in `SopsFixtureTests.cs` after rotating.
 
+### Passphrase-protected PGP key
+
+`PGP-PASSPHRASE-KEY.asc` (armored) and `PGP-PASSPHRASE-KEY.gpg` (binary) hold a second TEST-ONLY RSA key, protected
+with the passphrase `nops-test-passphrase`. They cover the passphrase paths of `PgpMasterKey` and loading a
+binary (non-armored) key ring.
+
+- Primary fingerprint: `5B3E2BB86CDF737A3B585240C0914CD66DE561F6`
+- Used by `pgp-passphrase.enc.yaml`, written by real `sops`. It is deliberately not named `*.sops.*`, because the
+  CI fixture check decrypts those with gpg, which cannot prompt for a passphrase.
+
 ## Fixture Files
 
 Encrypted fixtures use these keys:
@@ -98,6 +108,9 @@ Encrypted fixtures use these keys:
 | `numbers.sops.json` | Age | JSON integers beyond 2^53 / the int64 range |
 | `special-floats.sops.yaml` | Age | YAML `.nan` / `.inf` |
 | `pgp.sops.yaml` | PGP | Data key encrypted to the PGP encryption subkey |
+| `typed-values.sops.yaml` | Age | Nested sequences, nulls, empty lists, time, float and bool values |
+| `pgp-passphrase.enc.yaml` | PGP (passphrase) | Passphrase-protected key, see above (not checked by CI's gpg step) |
+| `age-cctv/*` | Age | 101 vectors from the C2SP age test suite, run by `AgeCctvTests` |
 
 ## CI Verification
 
