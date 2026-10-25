@@ -11,6 +11,10 @@ namespace Nops.Core.Stores;
 /// </summary>
 internal static class FlatMetadataDecoder
 {
+    // Real files hold a handful of entries per list (key groups, recipients). The cap stops a corrupted
+    // index such as "list_2000000000" from allocating gigabytes.
+    private const int MaxListIndex = 1024;
+
     public static Dictionary<string, object> Decode(Dictionary<string, string> flatKeys)
     {
         var root = new Dictionary<string, object>();
@@ -35,7 +39,9 @@ internal static class FlatMetadataDecoder
             {
                 var list = current as List<object>
                     ?? throw new InvalidOperationException($"Expected a list at path segment '{seg}'");
-                var idx = int.Parse(seg.AsSpan(5).ToString(), System.Globalization.CultureInfo.InvariantCulture);
+                if (!int.TryParse(seg.AsSpan(5), System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture, out var idx) || idx >= MaxListIndex)
+                    throw new InvalidOperationException($"Invalid list index in path segment '{seg}'");
                 while (list.Count <= idx)
                     list.Add(new Dictionary<string, object>());
 
@@ -49,7 +55,8 @@ internal static class FlatMetadataDecoder
             else
             {
                 var key = seg.StartsWith("map_", StringComparison.Ordinal) ? seg[4..] : seg;
-                var dict = (Dictionary<string, object>)current;
+                var dict = current as Dictionary<string, object>
+                    ?? throw new InvalidOperationException($"Expected a map at path segment '{seg}'");
 
                 if (isLast)
                 {

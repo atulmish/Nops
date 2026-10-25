@@ -24,7 +24,7 @@ This page states what Nops guarantees, how the implementation was verified, and 
 | Real `sops` output | Every fixture is written by `sops` 3.13 and decrypted by `sops` in CI, and by Nops in the test suite. |
 | C2SP age test vectors | The 101 vectors that use an X25519 identity: every file that must be accepted is, and every file that must be rejected is. They cover armor, stanza parsing, the header MAC and the STREAM payload. |
 | Cross-check against the `age` tool | Files produced by `age` (empty, 64 KiB, 128 KiB and larger payloads, armored and binary, several recipients) decrypt byte for byte. Flipped, truncated, extended and reordered inputs are rejected. |
-| Hostile input | Large and highly repetitive headers are rejected in linear time. A randomised mutation test runs in CI and asserts that corrupted files fail only with the documented exception types. |
+| Hostile input | Large and highly repetitive headers are rejected in linear time. A randomised mutation test and property-based tests (FsCheck) run in CI. They corrupt valid files and feed random text and bytes to the age, YAML, JSON, dotenv and INI parsers, and assert that only the documented exception types ever escape. |
 | Test coverage | More than 95% of lines are covered, and CI fails below that. |
 | Static analysis | CodeQL runs on every change and weekly, and dependencies are reviewed on pull requests. |
 

@@ -37,6 +37,10 @@ public class RobustnessTests
         return [.. data];
     }
 
+    // string.GetHashCode is randomised per process in .NET, which would make the seed (and any failure) irreproducible.
+    private static int StableHash(string text) =>
+        text.Aggregate(17, (hash, c) => unchecked((hash * 31) + c));
+
     private static bool IsDocumented(Exception ex) => ex is
         InvalidDataException or
         InvalidOperationException or
@@ -91,7 +95,7 @@ public class RobustnessTests
             AgeIdentities = [Path.Combine(FixtureDir, "AGE-TEST-KEY.txt")],
             UseSopsEnvironment = false,
         };
-        var random = new Random(fixture.GetHashCode() ^ 20261025);
+        var random = new Random(StableHash(fixture) ^ 20261025);
 
         for (var i = 0; i < Iterations; i++)
         {

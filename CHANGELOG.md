@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Property-based tests (FsCheck): random text and bytes never make the age, YAML, JSON, dotenv, INI or encrypted-value parsers fail with an undocumented exception, encoded floating-point values always parse back to the same number, Shamir shares recover the secret from any subset of the threshold size, and the dotenv newline escaping round-trips
 - Each package is attested with signed build provenance and signed with Sigstore at release time, and the signature bundles are attached to the GitHub release. See "Verifying a release" in `docs/security-model.md`
 - The release workflow can be started by hand on a branch as a dry run that builds, attests and signs but publishes nothing
 
@@ -15,6 +16,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Workflows use read-only tokens at the top level and grant write permissions only to the job that needs them
 - Every GitHub Action is pinned to a commit SHA (Dependabot keeps them current), and the tools installed in workflows have pinned versions
+
+### Fixed
+
+- A corrupted dotenv or INI file with conflicting `sops_` metadata keys no longer escapes as an `InvalidCastException`, and an oversized or malformed list index no longer allocates memory or fails with an `OverflowException`. Both now raise `InvalidOperationException`
+- The mutation test used a per-process random seed, so its failures could not be reproduced. It now uses a stable seed
 
 ## [1.1.0] - 2026-10-25
 
