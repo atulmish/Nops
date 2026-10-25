@@ -44,7 +44,7 @@ Public members need XML doc comments: the build treats a missing one as an error
 
 ## Pull requests
 
-- Add or update tests for behavior changes. CI enforces at least 95% line coverage (the report is in the job summary).
+- Add or update tests for behavior changes. Parsing and encoding code should also be covered by a property in `tests/Nops.Core.Tests/PropertyBasedTests.cs` (FsCheck generates random input and a failure prints a seed that reproduces it). CI enforces at least 95% line coverage (the report is in the job summary).
 - Keep public API changes minimal and documented with XML doc comments.
 - Cloud integration tests are skipped unless their environment is available (for example `AWS_LIVE_TEST=1` with LocalStack). Unit tests must pass without any cloud access.
 - Describe what changed and why in the pull request body.
