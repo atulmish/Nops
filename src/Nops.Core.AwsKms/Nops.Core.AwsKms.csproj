@@ -20,8 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.Core" Version="4.0.102.8" />
-    <PackageReference Include="AWSSDK.KeyManagementService" Version="4.0.100.15" />
+    <PackageReference Include="AWSSDK.Core" Version="4.0.102.13" />
+    <PackageReference Include="AWSSDK.KeyManagementService" Version="4.0.100.20" />
   </ItemGroup>
 
 </Project>
