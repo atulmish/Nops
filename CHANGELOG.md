@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- OpenSSF Best Practices badge (passing level) in the README
+
 ## [1.1.1] - 2026-10-25
 
 ### Added
