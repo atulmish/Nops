@@ -49,7 +49,7 @@ public class AgeCctvTests
         if (expect == "success")
         {
             var plaintext = AgeDecryptor.Decrypt(body, scalar);
-            Assert.Equal(headers["payload"].Single(), Convert.ToHexStringLower(SHA256.HashData(plaintext)));
+            Assert.Equal(headers["payload"].Single(), Convert.ToHexString(SHA256.HashData(plaintext)).ToLowerInvariant());
         }
         else
         {

@@ -1,6 +1,6 @@
-using System.Reflection;
 using Amazon.KeyManagementService;
 using Amazon.KeyManagementService.Model;
+using NSubstitute;
 using Nops.Core.Keys;
 
 namespace Nops.Core.AwsKms.Tests;
@@ -8,29 +8,22 @@ namespace Nops.Core.AwsKms.Tests;
 /// <summary>Decrypting through a fake KMS client: no AWS account, network or credentials needed.</summary>
 public class AwsKmsMasterKeyTests
 {
-    /// <summary>Stand-in for <see cref="IAmazonKeyManagementService"/> that only implements DecryptAsync.</summary>
-    public class FakeKms : DispatchProxy
+    /// <summary>Captures the request and answers with <paramref name="onDecrypt"/>.</summary>
+    public sealed class FakeKms
     {
-        public Func<DecryptRequest, Task<DecryptResponse>> OnDecrypt { get; set; } = _ => throw new NotSupportedException();
-        public DecryptRequest? LastRequest { get; private set; }
-
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-        {
-            if (targetMethod?.Name == "DecryptAsync")
-            {
-                LastRequest = (DecryptRequest)args![0]!;
-                return OnDecrypt(LastRequest);
-            }
-
-            throw new NotSupportedException(targetMethod?.Name);
-        }
+        public DecryptRequest? LastRequest { get; set; }
     }
 
     private static (IAmazonKeyManagementService Client, FakeKms Fake) NewClient(Func<DecryptRequest, Task<DecryptResponse>> onDecrypt)
     {
-        var client = DispatchProxy.Create<IAmazonKeyManagementService, FakeKms>();
-        var fake = (FakeKms)(object)client;
-        fake.OnDecrypt = onDecrypt;
+        var fake = new FakeKms();
+        var client = Substitute.For<IAmazonKeyManagementService>();
+        client.DecryptAsync(Arg.Any<DecryptRequest>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                fake.LastRequest = call.Arg<DecryptRequest>();
+                return onDecrypt(fake.LastRequest);
+            });
         return (client, fake);
     }
 

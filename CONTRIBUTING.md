@@ -4,7 +4,7 @@ Thanks for your interest in improving Nops!
 
 ## Development setup
 
-1. Install the .NET SDK version pinned in `global.json`.
+1. Install the .NET SDK version pinned in `global.json`, and the .NET 8 runtime as well. The libraries and tests target `net8.0` and `net10.0`, and `dotnet test` runs both.
 2. Clone the repository and build:
 
    ```bash
