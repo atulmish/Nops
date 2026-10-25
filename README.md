@@ -43,7 +43,6 @@
 | **A security engineer** | The file's MAC is verified before any value is returned, decrypted values stay in memory, and the age implementation is checked against the 101 official test vectors and against real `sops` output. See the [security model](https://github.com/atulmish/Nops/blob/main/docs/security-model.md). |
 | **An application developer** | One line, `AddSops("secrets.sops.yaml")`, then `IConfiguration`, `IOptions<T>`, layering and reload work as they always have. |
 
-
 You keep encrypting and editing secrets with the `sops` CLI as usual and commit the encrypted files. Your app decrypts them in-process at startup:
 
 ```csharp
