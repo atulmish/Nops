@@ -4,6 +4,18 @@
   href: configuration.md
 - name: Deploying with Nops
   href: deployment.md
+- name: Hosting guide
+  href: hosting.md
+- name: Docker and distroless images
+  href: docker.md
+- name: Kubernetes and GitOps
+  href: kubernetes-gitops.md
+- name: Migrating to Nops
+  href: migrating.md
+- name: Comparison
+  href: comparison.md
+- name: Security model
+  href: security-model.md
 - name: Cloud KMS setup
   href: cloud-kms.md
 - name: Test keys

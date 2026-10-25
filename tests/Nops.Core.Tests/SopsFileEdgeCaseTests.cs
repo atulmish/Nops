@@ -115,3 +115,23 @@ public class SopsFileEdgeCaseTests
         Assert.Equal("hello world", values["myapp1"]);
     }
 }
+
+public class TamperedValueTests
+{
+    [Fact]
+    public async Task ATamperedEncryptedValue_RaisesMacMismatch_NotAThirdPartyException()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "Fixtures");
+        var yaml = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(dir, "secrets.sops.yaml")));
+        // Change one character of the ciphertext of the first value.
+        var tampered = System.Text.RegularExpressions.Regex.Replace(
+            yaml, @"(myapp1: ENC\[AES256_GCM,data:)(.)", m => m.Groups[1].Value + (m.Groups[2].Value == "A" ? "B" : "A"));
+        Assert.NotEqual(yaml, tampered);
+
+        var options = new SopsOptions { AgeIdentities = [Path.Combine(dir, "AGE-TEST-KEY.txt")], UseSopsEnvironment = false };
+
+        var ex = await Assert.ThrowsAsync<MacMismatchException>(() =>
+            SopsFile.DecryptToDictionaryAsync(System.Text.Encoding.UTF8.GetBytes(tampered), "yaml", options));
+        Assert.Contains("failed authentication", ex.Message);
+    }
+}

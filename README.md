@@ -33,7 +33,16 @@
   <a href="https://github.com/atulmish/Nops/blob/main/CHANGELOG.md">Changelog</a>
 </p>
 
-**Read [SOPS](https://github.com/getsops/sops)-encrypted secrets straight into .NET configuration. No `sops` binary, no subprocess, no plaintext on disk.**
+## SOPS for .NET, without the sops binary
+
+**Nops reads [SOPS](https://github.com/getsops/sops)-encrypted secrets straight into .NET configuration. There is no `sops` binary, no subprocess and no plaintext on disk.**
+
+| If you are... | What Nops gives you |
+|---|---|
+| **A platform or Kubernetes engineer** | No `sops` binary, shell or init step in the image. It runs on distroless and chiseled images, on Windows, and outside Kubernetes. |
+| **A security engineer** | The file's MAC is verified before any value is returned, decrypted values stay in memory, and the age implementation is checked against the 101 official test vectors and against real `sops` output. See the [security model](https://github.com/atulmish/Nops/blob/main/docs/security-model.md). |
+| **An application developer** | One line, `AddSops("secrets.sops.yaml")`, then `IConfiguration`, `IOptions<T>`, layering and reload work as they always have. |
+
 
 You keep encrypting and editing secrets with the `sops` CLI as usual and commit the encrypted files. Your app decrypts them in-process at startup:
 
@@ -96,8 +105,19 @@ dotnet add package Nops.Core            # Decryption API only
 | [`Nops.Core.GcpKms`](https://www.nuget.org/packages/Nops.Core.GcpKms) | Google Cloud KMS keys |
 | [`Nops.Core.Azkv`](https://www.nuget.org/packages/Nops.Core.Azkv) | Azure Key Vault keys |
 | [`Nops.Core.Vault`](https://www.nuget.org/packages/Nops.Core.Vault) | HashiCorp Vault Transit keys |
+| [`Nops.Templates`](https://www.nuget.org/packages/Nops.Templates) | `dotnet new` templates for a web API and a worker service that load SOPS secrets |
 
-Targets .NET 8 and .NET 10, the two long-term support releases. Applications on .NET 9 use the .NET 8 build.
+From version 1.1.0 the libraries target .NET 8 and .NET 10, the two long-term support releases. Applications on .NET 9 use the .NET 8 build.
+
+### Try it in five minutes
+
+```bash
+dotnet new install Nops.Templates
+dotnet new nops-webapi -n MyApi
+cd MyApi && dotnet run
+```
+
+The template ships a demo secrets file and a TEST-ONLY key so it runs immediately. Its README explains how to switch to your own key. See also the [samples](https://github.com/atulmish/Nops/blob/main/samples/README.md) and the [hosting guide](https://github.com/atulmish/Nops/blob/main/docs/hosting.md) (console, worker service, ASP.NET Core, Azure Functions).
 
 ## Quickstart
 
@@ -201,6 +221,12 @@ Relative file paths are resolved against the current working directory.
 - [Quickstart](https://github.com/atulmish/Nops/blob/main/docs/quickstart.md): first decrypt, typed binding, samples
 - [Configuration reference](https://github.com/atulmish/Nops/blob/main/docs/configuration.md): every option, key flattening, reload, errors
 - [Deploying with Nops](https://github.com/atulmish/Nops/blob/main/docs/deployment.md): config layout, Kubernetes and Docker, key rotation, troubleshooting
+- [Hosting guide](https://github.com/atulmish/Nops/blob/main/docs/hosting.md): console, worker service, ASP.NET Core and Azure Functions
+- [Docker and distroless images](https://github.com/atulmish/Nops/blob/main/docs/docker.md): run without a shell or the sops binary
+- [Kubernetes and GitOps](https://github.com/atulmish/Nops/blob/main/docs/kubernetes-gitops.md): how Nops fits with Flux, Argo CD and in-cluster decryption
+- [Migrating to Nops](https://github.com/atulmish/Nops/blob/main/docs/migrating.md): from `sops -d` in CI, user-secrets and plain environment variables
+- [Comparison](https://github.com/atulmish/Nops/blob/main/docs/comparison.md): Nops and the other ways to use SOPS from .NET
+- [Security model](https://github.com/atulmish/Nops/blob/main/docs/security-model.md): guarantees, how the implementation was verified, and its limits
 - [Cloud KMS setup](https://github.com/atulmish/Nops/blob/main/docs/cloud-kms.md): AWS, GCP, Azure, Vault
 - [Test keys](https://github.com/atulmish/Nops/blob/main/docs/test-keys.md): how the fixtures are generated
 - [Samples](https://github.com/atulmish/Nops/blob/main/samples/README.md): console, minimal API and layered-config apps you can run

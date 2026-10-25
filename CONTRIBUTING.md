@@ -2,6 +2,10 @@
 
 Thanks for your interest in improving Nops!
 
+## Where to start
+
+Look at the issues labelled [`good first issue`](https://github.com/atulmish/Nops/labels/good%20first%20issue) and [`help wanted`](https://github.com/atulmish/Nops/labels/help%20wanted), and at the [roadmap](ROADMAP.md). Comment on an issue before you start so that work is not duplicated.
+
 ## Development setup
 
 1. Install the .NET SDK version pinned in `global.json`, and the .NET 8 runtime as well. The libraries and tests target `net8.0` and `net10.0`, and `dotnet test` runs both.

@@ -70,7 +70,16 @@ internal static class AesGcmDecryptor
             return null;
 
         var aadBytes = Encoding.UTF8.GetBytes(aad ?? string.Empty);
-        var plaintext = Decryptor.Decrypt(dataKey, ev.Iv!, ev.Data!, ev.Tag!, aadBytes);
+        byte[] plaintext;
+        try
+        {
+            plaintext = Decryptor.Decrypt(dataKey, ev.Iv!, ev.Data!, ev.Tag!, aadBytes);
+        }
+        catch (Org.BouncyCastle.Crypto.InvalidCipherTextException ex)
+        {
+            throw new MacMismatchException(
+                "An encrypted value failed authentication: the file was modified without sops, or is corrupt.", ex);
+        }
 
         return CastByType(plaintext, ev.DataType!);
     }

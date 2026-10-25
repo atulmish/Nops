@@ -43,5 +43,11 @@ dotnet add package Nops.Core            # Decryption API only
 - [Quickstart](../docs/quickstart.md): first decrypt, typed binding, samples
 - [Configuration reference](../docs/configuration.md): every option, key flattening, reload, errors
 - [Deploying with Nops](../docs/deployment.md): config layout, Kubernetes and Docker, key rotation, troubleshooting
+- [Hosting guide](../docs/hosting.md): console, worker service, ASP.NET Core and Azure Functions
+- [Docker and distroless images](../docs/docker.md): run without a shell or the sops binary
+- [Kubernetes and GitOps](../docs/kubernetes-gitops.md): how Nops fits with Flux and Argo CD
+- [Migrating to Nops](../docs/migrating.md): from `sops -d`, user-secrets and environment variables
+- [Comparison](../docs/comparison.md): the other ways to use SOPS from .NET
+- [Security model](../docs/security-model.md): guarantees, verification and limits
 - [Cloud KMS setup](../docs/cloud-kms.md): AWS, GCP, Azure Key Vault, HashiCorp Vault
 - [API reference](api/index.md): every public type

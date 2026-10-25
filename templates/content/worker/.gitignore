@@ -1,0 +1,5 @@
+bin/
+obj/
+# Your real age key must never be committed.
+keys.txt
+*.key

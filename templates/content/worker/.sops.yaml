@@ -1,0 +1,5 @@
+# Creation rules for sops. The recipient below is the public half of the TEST-ONLY demo key in
+# dev-age-key.txt. Replace it with your own age public key (age-keygen -y keys.txt) before real use.
+creation_rules:
+  - path_regex: secrets\.sops\.yaml$
+    age: age1q4rff6x85y5jnatyphqst5h83njnnv9whguftdutr7t5x0g5pcgs6z9edz

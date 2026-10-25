@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "NopsWorker": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "SOPS_AGE_KEY_FILE": "dev-age-key.txt"
+      }
+    }
+  }
+}

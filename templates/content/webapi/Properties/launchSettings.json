@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "NopsWebApi": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "SOPS_AGE_KEY_FILE": "dev-age-key.txt"
+      }
+    }
+  }
+}
