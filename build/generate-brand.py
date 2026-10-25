@@ -309,7 +309,17 @@ def keys_svg(w=1200, h=170):
 
 
 def social_svg(w=1280, h=640):
-    return banner_svg(w, h).replace('viewBox="0 0 1280 400"', f'viewBox="0 0 {w} {h}"')
+    """GitHub social preview (1280x640): the banner centred on the brand background."""
+    inner = banner_svg().split("\n", 1)[1].rsplit("</svg>", 1)[0]
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" role="img" aria-label="Nops: read SOPS-encrypted secrets straight into .NET configuration">
+  <defs>{defs_common("s")}</defs>
+  <rect width="{w}" height="{h}" fill="url(#bgs)"/>
+  <rect width="{w}" height="{h}" fill="url(#dotss)"/>
+  <rect width="{w}" height="{h}" fill="url(#glowTs)"/>
+  <rect width="{w}" height="{h}" fill="url(#glowVs)"/>
+  <svg x="0" y="{(h - 400) // 2}" width="1280" height="400" viewBox="0 0 1280 400">{inner}</svg>
+</svg>
+"""
 
 
 def render(svg_path, png_path, width):
@@ -325,6 +335,7 @@ def main():
         "flow": (flow_svg(), 1200),
         "features": (features_svg(), 1200),
         "keys": (keys_svg(), 1200),
+        "social-preview": (social_svg(), 1280),
     }
     for name, (svg, width) in assets.items():
         svg_path = OUT / f"{name}.svg"

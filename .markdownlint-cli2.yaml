@@ -4,6 +4,7 @@ config:
   MD013: false        # line length: prose is wrapped by editors, tables and URLs are long
   MD033: false        # inline HTML is fine
   MD041: false        # templates and fixture READMEs don't start with an H1
+  MD060: false        # table delimiter style: the compact |---| rows are used throughout
   MD024:
     siblings_only: true
 globs:
@@ -12,4 +13,3 @@ ignores:
   - "**/bin/**"
   - "**/obj/**"
   - "node_modules/**"
-  - "PLAN.md"
