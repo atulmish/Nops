@@ -13,7 +13,7 @@
   <a href="https://www.nuget.org/packages/Nops.Core"><img src="https://img.shields.io/nuget/v/Nops.Core.svg?label=Nops.Core&logo=nuget" alt="Nops.Core on NuGet"></a>
   <a href="https://www.nuget.org/packages/Nops.Configuration"><img src="https://img.shields.io/nuget/v/Nops.Configuration.svg?label=Nops.Configuration&logo=nuget" alt="Nops.Configuration on NuGet"></a>
   <a href="https://www.nuget.org/packages/Nops.Core"><img src="https://img.shields.io/nuget/dt/Nops.Core.svg?label=downloads&color=blue" alt="NuGet downloads"></a>
-  <a href="https://dotnet.microsoft.com/download/dotnet/10.0"><img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet" alt=".NET 10"></a>
+  <a href="https://dotnet.microsoft.com/download"><img src="https://img.shields.io/badge/.NET-8%20%7C%2010-512BD4?logo=dotnet" alt=".NET 8 and .NET 10"></a>
   <a href="https://github.com/atulmish/Nops/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-%E2%89%A595%25%20enforced-brightgreen" alt="Line coverage of at least 95% is enforced in CI"></a>
 </p>
 
@@ -97,7 +97,7 @@ dotnet add package Nops.Core            # Decryption API only
 | [`Nops.Core.Azkv`](https://www.nuget.org/packages/Nops.Core.Azkv) | Azure Key Vault keys |
 | [`Nops.Core.Vault`](https://www.nuget.org/packages/Nops.Core.Vault) | HashiCorp Vault Transit keys |
 
-Requires .NET 10.
+Targets .NET 8 and .NET 10, the two long-term support releases. Applications on .NET 9 use the .NET 8 build.
 
 ## Quickstart
 

@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-25
+
+### Added
+
+- Every library now targets `net8.0` and `net10.0` (it was `net10.0` only), so applications on .NET 8 and .NET 9 can use Nops. `Nops.Configuration` depends on the matching `Microsoft.Extensions.*` major version for each target (8.x on .NET 8, 10.x on .NET 10)
+
+### Changed
+
+- The test suite runs on both target frameworks in CI
+
 ## [1.0.0] - 2026-10-25
 
 First stable release.
@@ -76,6 +86,7 @@ Initial preview release.
 - Samples for minimal API and configuration usage
 - Documentation: quickstart, configuration reference, cloud KMS setup, test keys
 
-[Unreleased]: https://github.com/atulmish/Nops/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/atulmish/Nops/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/atulmish/Nops/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/atulmish/Nops/compare/v1.0.0-preview.1...v1.0.0
 [1.0.0-preview.1]: https://github.com/atulmish/Nops/releases/tag/v1.0.0-preview.1
