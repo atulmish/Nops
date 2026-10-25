@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-25
+
 ### Added
 
 - Property-based tests (FsCheck): random text and bytes never make the age, YAML, JSON, dotenv, INI or encrypted-value parsers fail with an undocumented exception, encoded floating-point values always parse back to the same number, Shamir shares recover the secret from any subset of the threshold size, and the dotenv newline escaping round-trips
@@ -108,7 +110,8 @@ Initial preview release.
 - Samples for minimal API and configuration usage
 - Documentation: quickstart, configuration reference, cloud KMS setup, test keys
 
-[Unreleased]: https://github.com/atulmish/Nops/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/atulmish/Nops/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/atulmish/Nops/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/atulmish/Nops/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/atulmish/Nops/compare/v1.0.0-preview.1...v1.0.0
 [1.0.0-preview.1]: https://github.com/atulmish/Nops/releases/tag/v1.0.0-preview.1
