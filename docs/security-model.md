@@ -60,4 +60,3 @@ cosign verify-blob Nops.Core.<version>.nupkg \
 ```
 
 Both commands fail if the file was not produced by that workflow from a version tag.
-
