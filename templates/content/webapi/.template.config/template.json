@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Nops Contributors",
+  "classifications": ["Web", "API", "Secrets"],
+  "identity": "Nops.Templates.WebApi",
+  "name": "Web API that loads SOPS-encrypted secrets (Nops)",
+  "shortName": "nops-webapi",
+  "description": "A minimal ASP.NET Core API that layers appsettings.json with a SOPS-encrypted secrets file, using Nops.",
+  "sourceName": "NopsWebApi",
+  "preferNameDirectory": true,
+  "tags": { "language": "C#", "type": "project" },
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "description": "The target framework.",
+      "datatype": "choice",
+      "choices": [
+        { "choice": "net10.0", "description": ".NET 10" },
+        { "choice": "net8.0", "description": ".NET 8" }
+      ],
+      "defaultValue": "net10.0",
+      "replaces": "__FRAMEWORK__"
+    },
+    "FrameworkVersion": {
+      "type": "generated",
+      "generator": "regex",
+      "dataType": "string",
+      "parameters": {
+        "source": "Framework",
+        "steps": [ { "regex": "^net", "replacement": "" } ]
+      },
+      "replaces": "__DOTNET_VERSION__"
+    }
+  },
+  "postActions": [
+    {
+      "description": "Restore the project",
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true,
+      "manualInstructions": [ { "text": "Run 'dotnet restore'" } ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+# TEST-ONLY age identities - NOT FOR PRODUCTION
+#
+# Key A - primary fixtures (secrets, nested, dotenv, ini, binary, comments, ...)
+# public key: age1q4rff6x85y5jnatyphqst5h83njnnv9whguftdutr7t5x0g5pcgs6z9edz
+AGE-SECRET-KEY-199MPU25KLMGQY4M25H0J49PSKMRXNARU4ATLFQ4DYHUSS46WSYJQP6U6H2
+#
+# Key B - 2-of-3 Shamir fixture (multi-keygroup.sops.yaml)
+# public key: age15yzfwtacy9u2349xq2s2a68hp5en0dg3u5ynqvw37n27zd04wexs4uc8hr
+AGE-SECRET-KEY-144L2UWZGRA2NFTG840R7VQFNAGDVM6H97LXM64XYGREVKX9M7HSQH534ES
+#
+# Key C - 2-of-3 Shamir fixture (multi-keygroup.sops.yaml)
+# public key: age1wy9eq7v2dmgl4u9fgzg3l3zxgpe0088r5fe7qzfynqtjtajhh35s94tjzd
+AGE-SECRET-KEY-153Y9D63KTQ7G5SJXT6LRM9W0XWZ2DKSG23EW2LX0HKJ6Z238DL6SK4MNX0

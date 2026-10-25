@@ -12,6 +12,9 @@
     <Project Path="src/Nops.Core.Vault/Nops.Core.Vault.csproj" />
     <Project Path="src/Nops.Core/Nops.Core.csproj" />
   </Folder>
+  <Folder Name="/templates/">
+    <Project Path="templates/Nops.Templates.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Nops.Configuration.Tests/Nops.Configuration.Tests.csproj" />
     <Project Path="tests/Nops.Core.AwsKms.Tests/Nops.Core.AwsKms.Tests.csproj" />

@@ -100,6 +100,7 @@
   "Nops.Core.Keys.VaultTransitMasterKey.Token": "Nops.Core.Keys.VaultTransitMasterKey.yml",
   "Nops.Core.MacMismatchException": "Nops.Core.MacMismatchException.yml",
   "Nops.Core.MacMismatchException.#ctor(System.String)": "Nops.Core.MacMismatchException.yml",
+  "Nops.Core.MacMismatchException.#ctor(System.String,System.Exception)": "Nops.Core.MacMismatchException.yml",
   "Nops.Core.PgpEntry": "Nops.Core.PgpEntry.yml",
   "Nops.Core.PgpEntry.#ctor(System.String,System.String,System.Nullable{System.DateTimeOffset})": "Nops.Core.PgpEntry.yml",
   "Nops.Core.PgpEntry.CreatedAt": "Nops.Core.PgpEntry.yml",

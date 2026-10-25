@@ -12,8 +12,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Every library now targets `net8.0` and `net10.0` (it was `net10.0` only), so applications on .NET 8 and .NET 9 can use Nops. `Nops.Configuration` depends on the matching `Microsoft.Extensions.*` major version for each target (8.x on .NET 8, 10.x on .NET 10)
 
+- `Nops.Templates`: `dotnet new nops-webapi` and `dotnet new nops-worker` templates that load a SOPS-encrypted secrets file, for .NET 8 and .NET 10, with a chiseled-image Dockerfile
+- Documentation: hosting guide, Docker and distroless images, Kubernetes and GitOps, migration guide, comparison with the other ways to use SOPS from .NET, and a security model page
+- `ROADMAP.md`, a support commitment in `SUPPORT.md`, and a CycloneDX software bill of materials attached to each GitHub release
+- A seeded mutation test that corrupts valid files thousands of times and asserts that only documented exceptions escape
+
 ### Changed
 
+- A tampered or corrupt encrypted value now raises `MacMismatchException` (with the original exception as its inner exception). Previously BouncyCastle's `InvalidCipherTextException` escaped
 - The test suite runs on both target frameworks in CI
 
 ## [1.0.0] - 2026-10-25
