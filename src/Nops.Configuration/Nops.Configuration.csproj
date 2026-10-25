@@ -22,7 +22,7 @@
   <!-- Plain Microsoft.Extensions packages (not the ASP.NET Core shared framework) so the
        provider works in console apps, worker services and Azure Functions too. -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
