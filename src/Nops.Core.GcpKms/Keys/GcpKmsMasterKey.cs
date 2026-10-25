@@ -9,12 +9,11 @@ using Nops.Core.Keys;
 namespace Nops.Core.Keys;
 
 /// <summary>
-/// Represents a KMS key entry from .sops metadata with its encryption context.
+/// Represents a GCP KMS key entry from .sops metadata.
 /// </summary>
-public sealed record GcpKmsEntry(
+internal sealed record GcpKmsEntry(
     string ResourceName,
     string Enc,
-    IReadOnlyList<KeyValuePair<string, string>> Context,
     DateTimeOffset? CreatedAt);
 
 /// <summary>
@@ -34,14 +33,10 @@ public class GcpKmsMasterKey : IMasterKeyProvider
     public string ResourceName { get; }
 
     /// <summary>
-    /// The encrypted data key share (base64-encoded).
+    /// Informational only: decryption uses the encrypted share read from the SOPS file
+    /// metadata, so this can be left empty.
     /// </summary>
     public string EncryptedShare { get; }
-
-    /// <summary>
-    /// Optional additional context for decryption.
-    /// </summary>
-    public IReadOnlyList<KeyValuePair<string, string>> Context { get; }
 
     /// <summary>
     /// The CloudKMS client used for decryption. If null, uses Application Default Credentials.
@@ -51,11 +46,10 @@ public class GcpKmsMasterKey : IMasterKeyProvider
     /// <summary>
     /// Creates a new GCP KMS master key provider.
     /// </summary>
-    public GcpKmsMasterKey(string resourceName, string encryptedShare, IReadOnlyList<KeyValuePair<string, string>>? context = null, KeyManagementServiceClient? client = null)
+    public GcpKmsMasterKey(string resourceName, string encryptedShare = "", KeyManagementServiceClient? client = null)
     {
         ResourceName = resourceName;
         EncryptedShare = encryptedShare;
-        Context = context ?? Array.Empty<KeyValuePair<string, string>>();
         Client = client;
     }
 
@@ -74,13 +68,6 @@ public class GcpKmsMasterKey : IMasterKeyProvider
                 Ciphertext = ByteString.CopyFrom(Convert.FromBase64String(enc))
             };
 
-            // Add additional context if present (must match what was used during encryption)
-            if (Context.Any())
-            {
-                request.AdditionalAuthenticatedData = ByteString.CopyFrom(
-                    System.Text.Encoding.UTF8.GetBytes(
-                        string.Join("&", Context.Select(kvp => $"{kvp.Key}={kvp.Value}"))));
-            }
 
             var response = await client.DecryptAsync(request, cancellationToken: ct);
 
@@ -111,23 +98,23 @@ public class GcpKmsMasterKey : IMasterKeyProvider
 /// <summary>
 /// Helper to parse opaque GCP KMS entries from .sops metadata into typed GcpKmsEntry objects.
 /// </summary>
-public static class GcpKmsEntryParser
+internal static class GcpKmsEntryParser
 {
     /// <summary>
     /// Parse a single opaque GCP KMS dict entry (from SopsMetadata.GcpKms) into a GcpKmsEntry.
-    /// Each entry is a Dictionary&lt;string, object&gt; with keys: resource_name, enc, created_at.
+    /// Each entry is a Dictionary&lt;string, object&gt; with keys as written by sops: resource_id, enc, created_at.
     /// </summary>
     public static GcpKmsEntry Parse(object entry)
     {
         if (entry is not Dictionary<string, object> dict)
             throw new ArgumentException("GCP KMS entry must be a dictionary", nameof(entry));
 
-        string resourceName = ExtractString(dict, "resource_name") ?? throw new ArgumentException("GCP KMS entry missing 'resource_name'", nameof(entry));
+        string resourceName = ExtractString(dict, "resource_id") ?? throw new ArgumentException("GCP KMS entry missing 'resource_id'", nameof(entry));
         string enc = ExtractString(dict, "enc") ?? throw new ArgumentException("GCP KMS entry missing 'enc'", nameof(entry));
 
         var createdAt = ExtractDateTime(dict, "created_at");
 
-        return new GcpKmsEntry(resourceName, enc, Array.Empty<KeyValuePair<string, string>>(), createdAt);
+        return new GcpKmsEntry(resourceName, enc, createdAt);
     }
 
     private static string? ExtractString(Dictionary<string, object> dict, string key)

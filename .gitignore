@@ -23,3 +23,8 @@ profile.out
 
 # OS
 .DS_Store
+
+# DocFX output
+docfx/_site/
+docfx/obj/
+docfx/api/*.yml

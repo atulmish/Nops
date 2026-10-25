@@ -1,91 +1,35 @@
-using Microsoft.Extensions.Configuration;
+// Generic host / console / worker usage: SOPS secrets bound to typed options.
+//
+// Run:  dotnet run            (launchSettings.json points SOPS_AGE_KEY_FILE at the TEST-ONLY key)
+// Or:   SOPS_AGE_KEY_FILE=/path/to/keys.txt dotnet run --no-launch-profile
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Nops.Configuration;
 
-var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args);
+var builder = Host.CreateApplicationBuilder(args);
 
-// Add SOPS-encrypted configuration file
-builder.Configuration.AddSops("secrets.sops.yaml", opts =>
+// Age keys are found the same way the sops CLI finds them (SOPS_AGE_KEY,
+// SOPS_AGE_KEY_FILE, ~/.config/sops/age/keys.txt), so no key code is needed here.
+builder.Configuration.AddSops("secrets.sops.yaml", opts => opts.WatchForChanges = true);
+
+builder.Services.AddOptions<DatabaseOptions>()
+    .BindConfiguration(DatabaseOptions.Section)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+using var host = builder.Build();
+
+var db = host.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+Console.WriteLine($"Database: {db.Host}:{db.Port}");
+Console.WriteLine($"Password loaded: {!string.IsNullOrEmpty(db.Password)} ({db.Password.Length} chars)");
+
+public sealed class DatabaseOptions
 {
-    // Optional: configure decryption options
-    opts.Optional = false;        // Throw if file missing (default)
-    opts.WatchForChanges = true;  // Auto-reload on file change
-    opts.ReloadInterval = TimeSpan.FromMilliseconds(250);
-});
+    public const string Section = "Database";
 
-// You can also add multiple SOPS files (last-wins for overlapping keys)
-// builder.Configuration.AddSops("secrets-overrides.sops.yaml", opts =>
-// {
-//     opts.Optional = true;  // Overrides are optional
-// });
-
-var host = builder.Build();
-
-// Access secrets via IConfiguration
-var config = host.Services.GetRequiredService<IConfiguration>();
-
-Console.WriteLine("=== ConfigurationSample ===");
-Console.WriteLine("Loaded configuration keys:");
-
-foreach (var kvp in GetAllConfigValues(config))
-{
-    Console.WriteLine($"  {kvp.Key} = {MaskValue(kvp.Key, kvp.Value)}");
-}
-
-Console.WriteLine();
-Console.WriteLine("To see unmasked values, set LOG_SECRETS=true environment variable.");
-
-if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOG_SECRETS")))
-{
-    Console.WriteLine("\n=== Unmasked Secrets ===");
-    foreach (var kvp in GetAllConfigValues(config).OrderBy(k => k.Key))
-    {
-        Console.WriteLine($"  {kvp.Key} = {kvp.Value}");
-    }
-}
-
-Console.WriteLine();
-Console.WriteLine("Press any key to exit...");
-Console.ReadKey();
-
-return 0;
-
-static IEnumerable<(string Key, string Value)> GetAllConfigValues(IConfiguration config)
-{
-    var results = new List<(string, string)>();
-
-    void Walk(IConfigurationSection section, string prefix)
-    {
-        var key = string.IsNullOrEmpty(prefix) ? section.Key : $"{prefix}:{section.Key}";
-
-        if (!section.GetChildren().Any())
-        {
-            if (section.Value != null)
-                results.Add((key, section.Value));
-        }
-        else
-        {
-            foreach (var child in section.GetChildren())
-            {
-                Walk(child, key);
-            }
-        }
-    }
-
-    Walk(config.GetSection(""), "");
-    return results;
-}
-
-static string MaskValue(string key, string value)
-{
-    var sensitiveKeywords = new[] { "password", "secret", "key", "token", "api_key" };
-    var isSensitive = sensitiveKeywords.Any(kw => key.ToLower().Contains(kw));
-
-    if (!isSensitive || string.IsNullOrEmpty(value))
-        return value;
-
-    if (value.Length <= 4)
-        return new string('*', value.Length);
-
-    return $"{value.Substring(0, 2)}{new string('*', value.Length - 2)}";
+    [Required] public string Host { get; set; } = "";
+    [Range(1, 65535)] public int Port { get; set; }
+    [Required] public string Password { get; set; } = "";
 }

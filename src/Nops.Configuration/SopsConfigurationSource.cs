@@ -11,12 +11,12 @@ public class SopsConfigurationSource : IConfigurationSource
     /// <summary>
     /// The SOPS options used to configure the provider.
     /// </summary>
-    public SopsOptions Options { get; }
+    public SopsConfigurationOptions Options { get; }
 
     /// <summary>
     /// Create a new SOPS configuration source.
     /// </summary>
-    public SopsConfigurationSource(SopsOptions options)
+    public SopsConfigurationSource(SopsConfigurationOptions options)
     {
         Options = options ?? throw new ArgumentNullException(nameof(options));
     }

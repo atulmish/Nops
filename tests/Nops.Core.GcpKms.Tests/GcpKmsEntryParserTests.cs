@@ -13,7 +13,7 @@ public class GcpKmsEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["resource_name"] = "projects/nops-secrets/locations/global/keyRings/test-keyring/cryptoKeys/nops-key",
+            ["resource_id"] = "projects/nops-secrets/locations/global/keyRings/test-keyring/cryptoKeys/nops-key",
             ["enc"] = "encrypted-data-key-share-base64"
         };
 
@@ -21,7 +21,6 @@ public class GcpKmsEntryParserTests
 
         Assert.Equal("projects/nops-secrets/locations/global/keyRings/test-keyring/cryptoKeys/nops-key", entry.ResourceName);
         Assert.Equal("encrypted-data-key-share-base64", entry.Enc);
-        Assert.Empty(entry.Context);
         Assert.Null(entry.CreatedAt);
     }
 
@@ -30,7 +29,7 @@ public class GcpKmsEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["resource_name"] = "projects/test/locations/global/keyRings/kr/cryptoKeys/ck",
+            ["resource_id"] = "projects/test/locations/global/keyRings/kr/cryptoKeys/ck",
             ["enc"] = "share-data",
             ["created_at"] = DateTimeOffset.Parse("2025-03-15T08:00:00Z")
         };
@@ -45,7 +44,7 @@ public class GcpKmsEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["resource_name"] = "projects/test/locations/global/keyRings/kr/cryptoKeys/ck",
+            ["resource_id"] = "projects/test/locations/global/keyRings/kr/cryptoKeys/ck",
             ["enc"] = "share-data",
             ["created_at"] = "2025-06-01T00:00:00Z"
         };
@@ -71,7 +70,7 @@ public class GcpKmsEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["resource_name"] = "projects/test/locations/global/keyRings/kr/cryptoKeys/ck"
+            ["resource_id"] = "projects/test/locations/global/keyRings/kr/cryptoKeys/ck"
         };
 
         Assert.Throws<ArgumentException>(() => GcpKmsEntryParser.Parse(dict));
@@ -90,7 +89,7 @@ public class GcpKmsEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["resource_name"] = "",
+            ["resource_id"] = "",
             ["enc"] = "empty-resource"
         };
 

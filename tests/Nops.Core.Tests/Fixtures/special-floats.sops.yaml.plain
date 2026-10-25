@@ -1,0 +1,4 @@
+ratio_unencrypted: .nan
+max_unencrypted: .inf
+min_unencrypted: -.inf
+secret: s

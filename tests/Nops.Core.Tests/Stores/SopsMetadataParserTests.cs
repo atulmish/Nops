@@ -105,6 +105,88 @@ public class SopsMetadataParserTests
     }
 
     [Fact]
+    public void Parse_KeyGroups_ExtractedCorrectly()
+    {
+        var groups = new List<object>
+        {
+            new Dictionary<string, object>
+            {
+                ["age"] = new List<object>
+                {
+                    new Dictionary<string, object> { ["recipient"] = "r1", ["enc"] = "e1" }
+                }
+            },
+            new Dictionary<string, object>
+            {
+                ["age"] = new List<object>
+                {
+                    new Dictionary<string, object> { ["recipient"] = "r2", ["enc"] = "e2" }
+                }
+            },
+        };
+
+        var dict = new Dictionary<string, object>
+        {
+            ["key_groups"] = groups,
+            ["shamir_threshold"] = 2,
+        };
+
+        var metadata = Nops.Core.Stores.SopsMetadataParser.Parse(dict);
+
+        Assert.NotNull(metadata.KeyGroups);
+        Assert.Equal(2, metadata.KeyGroups!.Count);
+        Assert.Equal("age", metadata.KeyGroups[0].Keys[0].KeyType);
+        Assert.Equal("e1", metadata.KeyGroups[0].Keys[0].Enc);
+        Assert.Equal("e2", metadata.KeyGroups[1].Keys[0].Enc);
+    }
+
+    [Fact]
+    public void Parse_FlatKeys_BecomeSingleGroup()
+    {
+        var dict = new Dictionary<string, object>
+        {
+            ["age"] = new List<object>
+            {
+                new Dictionary<string, object> { ["recipient"] = "r1", ["enc"] = "e1" }
+            },
+            ["pgp"] = new List<object>
+            {
+                new Dictionary<string, object> { ["fp"] = "fp1", ["enc"] = "e2" }
+            },
+        };
+
+        var metadata = Nops.Core.Stores.SopsMetadataParser.Parse(dict);
+
+        Assert.NotNull(metadata.KeyGroups);
+        Assert.Single(metadata.KeyGroups!);
+        Assert.Equal(2, metadata.KeyGroups[0].Keys.Count);
+    }
+
+    [Fact]
+    public void Parse_NoCryptRule_DefaultsToUnencryptedSuffix()
+    {
+        var metadata = Nops.Core.Stores.SopsMetadataParser.Parse(new Dictionary<string, object>
+        {
+            ["version"] = "3.10.2",
+        });
+
+        Assert.Equal("_unencrypted", metadata.UnencryptedSuffix);
+    }
+
+    [Fact]
+    public void Parse_MultipleCryptRules_Throws()
+    {
+        var dict = new Dictionary<string, object>
+        {
+            ["unencrypted_suffix"] = "_unencrypted",
+            ["encrypted_regex"] = "^(secret)$",
+        };
+
+        Assert.Throws<Nops.Core.SopsMetadataException>(
+            () => Nops.Core.Stores.SopsMetadataParser.Parse(dict));
+    }
+
+    [Fact]
     public void Parse_EmptyDict_ReturnsDefaults()
     {
         var dict = new Dictionary<string, object>();

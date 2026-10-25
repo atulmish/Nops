@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "LayeredConfigSample": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "SOPS_AGE_KEY_FILE": "../../tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt"
+      }
+    }
+  }
+}

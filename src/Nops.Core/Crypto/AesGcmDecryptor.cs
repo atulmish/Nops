@@ -10,7 +10,7 @@ namespace Nops.Core.Crypto;
 /// <summary>
 /// Interface for AES-GCM decryption with 32-byte nonce support (SOPS standard).
 /// </summary>
-public interface IAesGcmDecryptor
+internal interface IAesGcmDecryptor
 {
     /// <summary>
     /// Decrypt a 32-byte nonce AES-GCM ciphertext.
@@ -21,14 +21,8 @@ public interface IAesGcmDecryptor
 /// <summary>
 /// BouncyCastle-based AES-GCM decryptor supporting 32-byte nonces (SOPS standard).
 /// .NET AesGcm only supports 12-byte nonces, so we use BouncyCastle.GcmBlockCipher.
-/// 
-/// Important: BouncyCastle GcmBlockCipher API behavior:
-/// - ProcessBytes returns 0 for GCM mode (no output yet)
-/// - DoFinal writes ALL output (CT for encrypt, plaintext for decrypt)
-/// - For encryption: DoFinal appends TAG to output buffer
-/// - For decryption: DoFinal verifies TAG internally and writes plaintext only
 /// </summary>
-public class BouncyCastleAesGcmDecryptor : IAesGcmDecryptor
+internal class BouncyCastleAesGcmDecryptor : IAesGcmDecryptor
 {
     public byte[] Decrypt(byte[] key, byte[] nonce, byte[] ciphertext, byte[] tag, byte[] aad)
     {
@@ -50,11 +44,11 @@ public class BouncyCastleAesGcmDecryptor : IAesGcmDecryptor
 
         var output = new byte[gcmCipher.GetOutputSize(ctWithTag.Length)];
 
-        // ProcessBytes returns 0 for GCM - all output comes from DoFinal
-        gcmCipher.ProcessBytes(ctWithTag, 0, ctWithTag.Length, output, 0);
-        var plainLen = gcmCipher.DoFinal(output, 0);
+        // GCM may emit plaintext incrementally: accumulate both chunks.
+        var len = gcmCipher.ProcessBytes(ctWithTag, 0, ctWithTag.Length, output, 0);
+        len += gcmCipher.DoFinal(output, len);
 
-        return output[..plainLen];
+        return output[..len];
     }
 }
 
@@ -62,7 +56,7 @@ public class BouncyCastleAesGcmDecryptor : IAesGcmDecryptor
 /// High-level decryptor for SOPS encrypted values.
 /// Parses ENC[...] strings, decrypts with AES-GCM, and casts by type.
 /// </summary>
-public static class AesGcmDecryptor
+internal static class AesGcmDecryptor
 {
     private static readonly IAesGcmDecryptor Decryptor = new BouncyCastleAesGcmDecryptor();
 
@@ -93,7 +87,7 @@ public static class AesGcmDecryptor
             "float" => double.Parse(Encoding.UTF8.GetString(plaintext), System.Globalization.CultureInfo.InvariantCulture),
             "bool" => Encoding.UTF8.GetString(plaintext) == "True" ? true : false,
             "bytes" => plaintext,
-            "time" => DateTimeOffset.Parse(Encoding.UTF8.GetString(plaintext)).UtcDateTime,
+            "time" => DateTimeOffset.Parse(Encoding.UTF8.GetString(plaintext), System.Globalization.CultureInfo.InvariantCulture),
             "comment" => new Comment(Encoding.UTF8.GetString(plaintext)),
             _ => throw new InvalidOperationException($"Unknown SOPS encrypted value type: {dataType}")
         };

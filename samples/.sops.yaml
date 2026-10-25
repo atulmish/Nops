@@ -1,0 +1,5 @@
+# sops creation rules for the samples. The recipient is the TEST-ONLY age key in
+# tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt - never use it for real secrets.
+creation_rules:
+  - path_regex: secrets\.sops\.yaml$
+    age: age1q4rff6x85y5jnatyphqst5h83njnnv9whguftdutr7t5x0g5pcgs6z9edz

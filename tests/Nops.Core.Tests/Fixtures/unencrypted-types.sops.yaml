@@ -1,0 +1,33 @@
+bool_true_unencrypted: true
+bool_false_unencrypted: false
+int_unencrypted: 42
+neg_int_unencrypted: -7
+hex_unencrypted: 16
+octal_unencrypted: 8
+float_whole_unencrypted: 1
+float_unencrypted: 3.14
+exponent_unencrypted: 1000
+null_unencrypted: null
+tilde_unencrypted: null
+date_unencrypted: 2024-01-02T00:00:00Z
+datetime_unencrypted: 2024-01-01T10:20:30Z
+space_datetime_unencrypted: 2024-01-01T10:20:30Z
+no_tz_datetime_unencrypted: 2024-01-01T10:20:30
+quoted_bool_unencrypted: "true"
+string_unencrypted: hello
+secret: ENC[AES256_GCM,data:UKjvqJyOi3pDWviU+UkmnHFi,iv:ptkDBH/uo7BJJfSL5FHpBzBf/faDtb9mlNrK0nuaIac=,tag:LnsFvUmb9AbUVPGPA80JOw==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBJMVdQK2FLdjZuWUNlNTY1
+            SUZSTDRmdit1MVBLMW1TemFuNmJQOXVuMjAwCk5MajJ2bkllaEM0MUMzWHN5ZCtn
+            OVJZY0RJaFBaeDlld2pXZlVuakVDb0kKLS0tIG4xekFEMHJxUmpRMm1zNkh2RkZp
+            OXY0MElSUEtkMFFEWkZOKy9HUXNhMUUKeDl30GsX99Ryg7cvKoRh/PUPbzpVwJsH
+            znyMAyHbvjvUuZ1H1rFTy0ZoW8/yZb5y7xP4nzUtSKWBVtTtKZlJCw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1q4rff6x85y5jnatyphqst5h83njnnv9whguftdutr7t5x0g5pcgs6z9edz
+    lastmodified: "2026-10-15T14:25:37Z"
+    mac: ENC[AES256_GCM,data:A50bortDiyM1yEH7KprPh/zKDLimm3gjJbCFCVjJTxWaLm0jgh1PuIG00GSsB2Kcec2n48DfZQE8BwWPUMZu6A1uB04Ra66NWp+d0qoBS+1Vo3yTIYiDIrvMplcdQZ8WK20jNHdkd610zRlmObi4K0KqkIKPLLMhosZCyMTihZo=,iv:pvTu17tQcr/NWdPmAX3/xr3v82M5K4bUdJhfl+Arm1g=,tag:BE8OiZN8+B+eK0+wDDx2/A==,type:str]
+    unencrypted_suffix: _unencrypted
+    version: 3.13.3

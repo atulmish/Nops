@@ -1,6 +1,6 @@
 # Cloud KMS Setup - Nops
 
-Configuration for AWS KMS, Google Cloud KMS, Azure Key Vault, and HashiCorp Vault.
+Configuration for AWS KMS, Google Cloud KMS, Azure Key Vault, and HashiCorp Vault Transit.
 
 ## Overview
 
@@ -12,7 +12,27 @@ Nops supports decrypting data key shares encrypted under cloud KMS keys. Each pr
 | Google Cloud KMS | `Nops.Core.GcpKms` | `gcp_kms` |
 | Azure Key Vault | `Nops.Core.Azkv` | `azure_kv` |
 | HashiCorp Vault Transit | `Nops.Core.Vault` | `hc_vault` |
-| HashiCorp Cloud KMS | `Nops.Core.Vault` | `hckms` |
+
+> **Not supported:** sops' `hckms` key type is Huawei Cloud KMS. Files encrypted only for it cannot be decrypted by Nops.
+
+### Using a provider
+
+Create one master key per KMS key that can decrypt the file and pass them in
+`MasterKeys`. You don't copy anything out of the file: the encrypted data key is
+read from the file's `sops` metadata.
+
+```csharp
+builder.Configuration.AddSops("secrets.sops.yaml", opts =>
+{
+    opts.MasterKeys = new IMasterKeyProvider[]
+    {
+        new AwsKmsMasterKey("arn:aws:kms:us-east-1:123456789012:key/abcd-1234"),
+    };
+});
+```
+
+`AgeIdentities`, `PgpKeys` and the sops environment keys are still tried
+alongside `MasterKeys`.
 
 ## AWS KMS
 
@@ -36,8 +56,7 @@ Uses [AWS SDK default credential chain](https://docs.aws.amazon.com/sdk-for-net/
 using Nops.Core.Keys;
 
 var masterKey = new AwsKmsMasterKey(
-    arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234",
-    encryptedShare: "BASE64_ENCODED_SHARE"
+    arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234"
 );
 ```
 
@@ -61,7 +80,6 @@ If the SOPS file was encrypted with encryption context, pass it when creating th
 ```csharp
 var masterKey = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234",
-    encryptedShare: "...",
     context: new[] { 
         new KeyValuePair<string, string>("Project", "myapp"),
         new KeyValuePair<string, string>("Env", "prod") 
@@ -85,7 +103,6 @@ var client = new AmazonKMSClient(
 
 var masterKey = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:000000000000:key/test",
-    encryptedShare: "...",
     client: client
 );
 ```
@@ -112,14 +129,13 @@ Uses [Application Default Credentials (ADC)](https://cloud.google.com/docs/authe
 using Nops.Core.Keys;
 
 var masterKey = new GcpKmsMasterKey(
-    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key",
-    encryptedShare: "BASE64_ENCODED_SHARE"
+    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key"
 );
 ```
 
 ### IAM Role
 
-```
+```text
 roles/cloudkms.cryptoKeyDecrypter
 ```
 
@@ -157,8 +173,7 @@ using Nops.Core.Keys;
 
 var masterKey = new AzkvMasterKey(
     vaultUrl: "https://my-vault.vault.azure.net",
-    keyName: "sops-wrapping-key",
-    encryptedShare: "BASE64_ENCODED_SHARE"
+    keyName: "sops-wrapping-key"
 );
 ```
 
@@ -189,7 +204,6 @@ var masterKey = new VaultTransitMasterKey(
     address: "https://vault.example.com:8200",
     mountPath: "transit",
     keyName: "my-transit-key",
-    encryptedShare: "BASE64_ENCODED_SHARE",
     token: "s.vault-token-here"
 );
 ```
@@ -204,23 +218,6 @@ export VAULT_ADDR=http://127.0.0.1:8200
 
 vault secrets enable transit
 vault write -f transit/keys/sops-key
-```
-
-## HashiCorp Cloud KMS (HCKMS)
-
-HCKMS is accessed via Vault Transit endpoint that proxies to GCP KMS:
-
-```csharp
-using Nops.Core.Keys;
-
-var masterKey = new HckmsMasterKey(
-    projectId: "my-gcp-project",
-    location: "global",
-    keyRing: "my-keyring",
-    cryptoKey: "my-hckms-key",
-    encryptedShare: "BASE64_ENCODED_SHARE",
-    vaultToken: "s.vault-token-here"
-);
 ```
 
 ## Multi-Provider Support
@@ -241,7 +238,9 @@ sops:
       enc: BASE64...
 ```
 
-Nops will try age first, then AWS KMS, then GCP KMS - returning on first success.
+Nops goes through the file's key entries in order and asks each matching
+provider to decrypt; the first success wins. With several key groups (Shamir),
+it stops as soon as `shamir_threshold` groups have been decrypted.
 
 ## Testing
 

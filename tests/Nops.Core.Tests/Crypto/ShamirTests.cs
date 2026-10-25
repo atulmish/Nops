@@ -44,18 +44,15 @@ public class ShamirTests
     }
 
     [Fact]
-    public void Combine_InsufficientShares_ReturnsWrongValue()
+    public void Combine_InsufficientShares_Throws()
     {
-        // Shamir.Combine interpolates with whatever shares are given.
-        // Without knowing the original threshold, it can't validate "insufficiency".
+        // Upstream Shamir.Combine requires at least two shares of equal length.
         var secret = new byte[] { 0x01, 0x02 };
 
         var shares = Nops.Core.Crypto.Shamir.Split(secret, numShares: 3, threshold: 2);
 
-        // Using fewer shares than threshold produces wrong result
-        var result = Nops.Core.Crypto.Shamir.Combine(new[] { shares[0] });
-
-        Assert.NotEqual(secret, result);
+        Assert.Throws<ArgumentException>(() =>
+            Nops.Core.Crypto.Shamir.Combine(new[] { shares[0] }));
     }
 
     [Fact]

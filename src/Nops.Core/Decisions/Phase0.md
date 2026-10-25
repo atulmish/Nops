@@ -17,11 +17,13 @@
 **Rationale:** .NET's `System.Security.Cryptography.AesGcm` rejects 32-byte nonces (throws `ArgumentException`). SOPS specification uses 32-byte nonces, so we cannot use the BCL implementation directly.
 
 **Evidence:** Spike test `AesGcmBackendSpikeTests.AesGcm_Accepts32ByteNonce` confirms rejection:
-```
+
+```text
 System.ArgumentException: The specified nonce is not a valid size for this algorithm. (Parameter 'nonce')
 ```
 
 **BouncyCastle API discovered:**
+
 - Constructor: `GcmBlockCipher(IBlockCipher c)` - pass `AesEngine`
 - Init: `Init(bool forEncryption, ICipherParameters parameters)`
 - Process: `ProcessBlock(byte[] inBuf, int inOff, byte[] outBuf, int outOff)`
@@ -37,6 +39,7 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 **Rationale:** `YamlMappingNode` exposes a `Children` property (discovered via reflection) that preserves insertion order from the source file. This is critical for SOPS MAC computation which depends on walk order.
 
 **Key types discovered:**
+
 - `YamlStream.Load(TextReader)` - parse YAML
 - `YamlMappingNode.Children` - ordered key-value pairs
 - `YamlSequenceNode` - arrays (list-like)
@@ -53,18 +56,17 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 **Rationale:** SOPS-encrypted files contain PGP `enc` fields with ASCII-armored PGP messages. BouncyCastle's `ArmoredInputStream` is the standard way to decode these.
 
 **Key types discovered:**
+
 - `Org.BouncyCastle.Bcpg.ArmoredInputStream` - decode armored PGP data
 - `Org.BouncyCastle.Bcpg.OpenPgp.*` - PGP message types (PgpEncryptedDataList, etc.)
 
 ---
 
-## Decision 5: AgeSharp Library
+## Decision 5: Age implementation
 
-**Decision:** Use **AgeSharp** library for age X25519 + scrypt + ChaCha20-Poly1305 stanza decryption.
+**Decision:** Implement age X25519 decryption in `Nops.Core` (Bech32 identity parsing, strict armor, header and HMAC verification, ChaCha20-Poly1305 STREAM payload) on top of BouncyCastle and `System.Security.Cryptography`.
 
-**Rationale:** AgeSharp is the most mature .NET age implementation with MIT license. Will discover exact API surface in Phase 1 (Step D).
-
-**Next steps:** Add AgeSharp package reference, list real types via reflection, create compiling snippet for age stanza decrypt.
+**Rationale:** The only .NET age library (AgeSharp) is prerelease-only, and nuget.org rejects a stable package that depends on a prerelease one. sops needs only X25519 recipients, so the implementation is small and is checked against the C2SP age test vectors. Passphrase (scrypt), post-quantum and plugin recipients are out of scope.
 
 ---
 
@@ -81,4 +83,4 @@ System.ArgumentException: The specified nonce is not a valid size for this algor
 | Decision 2: AES-GCM = BouncyCastle.GcmBlockCipher | Done |
 | Decision 3: YAML = YamlDotNet YamlStream + Children | Done |
 | Decision 4: PGP = ArmoredInputStream | Done |
-| Decision 5: Age = AgeSharp (to be confirmed in Phase 1) | Pending |
+| Decision 5: Age = native implementation in Nops.Core | Done |

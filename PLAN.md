@@ -27,7 +27,7 @@ A pure managed .NET library that decrypts SOPS-encrypted files (YAML, JSON, Dote
 ```
 Nops/
 ├── src/
-│   ├── Nops.Core/                          # Core NuGet (~200KB, net8.0+)
+│   ├── Nops.Core/                          # Core NuGet (~200KB, net10.0)
 │   │   ├── Crypto/
 │   │   │   ├── AesGcmDecryptor.cs          # AES-256-GCM, 32-byte nonce (see Decision 2)
 │   │   │   ├── DataKeyResolver.cs           # Try master keys until one succeeds; Shamir combine
@@ -81,7 +81,7 @@ Nops/
 ## Build & Toolchain Lock (do not guess)
 
 - SDK: .NET 8 SDK (`global.json` pins exact version; agent must run `dotnet --info` and paste output in first PR).
-- TFMs: `net8.0` only for MVP. No `netstandard2.0` / `net48` backports.
+- TFMs: `net10.0` only. No `netstandard2.0` / `net48` backports.
 - C#: latest stable, `Nullable: enable`, `ImplicitUsings: enable`, `TreatWarningsAsErrors: true`.
 - Package versions: agent must resolve **exact** versions from NuGet (`dotnet package search`) and pin them in `.csproj`. Do NOT invent API names from memory. If a type/method in this plan doesn't exist in the resolved version, stop and report - don't shim with a guessed name.
 
@@ -147,7 +147,7 @@ Data key: 32 bytes (AES-256). GCM tag: 16 bytes.
   `mac: ENC[AES256_GCM,...,type:str]` (see `sops/example.yaml:35`).
   Decrypt it with the data key first, then compare against recomputed `%X` hash.
 - `mac_only_encrypted` (bool): if true, hash is seeded with fixed prefix
-  `8a3fd2ad54ce66527b1034f3d147beb0bb975b3bf44f72c6fdadec8176f27d69`
+  `8a3fd2ad54ce66527b1034f3d147be0b0b975b3bf44f72c6fdadec8176f27d69`
   (`echo -n sops | sha256sum`, `sops.go:93,536-539,601-604`) and only covers values where `shouldBeEncrypted == true`.
 - Comments inside sequences are excluded from MAC on both encrypt and decrypt paths (regression test `mac_comment_test.go` for getsops/sops#2243). Port that test.
 
@@ -286,8 +286,8 @@ Conventions: each step lists **Files**, **API**, **Tests first**, **Gate**. TDD 
 ### Phase 0 - Spike & Scaffold (0.5–1 day)
 
 **Step A - Pin toolchain + create solution (no guessing versions).**
-- Files: `global.json`, `Nops.sln`, `src/Nops.Core/Nops.Core.csproj` (`net8.0`, `Nullable enable`, `ImplicitUsings enable`, `TreatWarningsAsErrors true`), `tests/Nops.Core.Tests/Nops.Core.Tests.csproj` (xUnit).
-- Commands: `dotnet --info` (paste in PR) → `dotnet new sln -n Nops` → `dotnet new classlib -o src/Nops.Core -f net8.0` → `dotnet new xunit -o tests/Nops.Core.Tests -f net8.0` → `dotnet sln add` both → `dotnet build`.
+- Files: `global.json`, `Nops.slnx`, `src/Nops.Core/Nops.Core.csproj` (`net10.0`, `Nullable enable`, `ImplicitUsings enable`, `TreatWarningsAsErrors true`), `tests/Nops.Core.Tests/Nops.Core.Tests.csproj` (xUnit).
+- Commands: `dotnet --info` (paste in PR) → `dotnet new sln -n Nops` → `dotnet new classlib -o src/Nops.Core -f net10.0` → `dotnet new xunit -o tests/Nops.Core.Tests -f net10.0` → `dotnet sln add` both → `dotnet build`.
 - Gate: `dotnet build` + `dotnet test` (empty) green.
 
 **Step B - AES-GCM backend decision (BLOCKING).**
@@ -369,7 +369,7 @@ Conventions: each step lists **Files**, **API**, **Tests first**, **Gate**. TDD 
 
 **Step L - `IMasterKeyProvider` + `DataKeyResolver`.**
 - Files: `Keys/IMasterKeyProvider.cs` (`string KeyType {get;} Task<byte[]?> DecryptShareAsync(string enc, CancellationToken ct)` - returns share or data key), `Crypto/DataKeyResolver.cs` (`Task<byte[]> ResolveAsync(SopsMetadata m, SopsOptions o, CancellationToken ct)`).
-- Logic: build runtime groups from metadata + supplied providers; single group → first success wins; multi-group → collect ≥ threshold shares → `Shamir.Combine`; aggregate per-key exceptions into `SopsKeyException`; threshold unmet → throw.
+- Logic: build runtime groups from metadata + supplied providers; single group → first success wins; multi-group → collect ≥ threshold shares → `Shamir.Combine`; aggregate per-key exceptions into an `InvalidOperationException`; threshold unmet → throw `InvalidOperationException`. Unsupported key types throw `NotSupportedException`.
 - Tests: `KeyResolverTests.cs` - single-group first-wins, multi-group 2-of-3, all-fail aggregation, threshold-0-means-all.
 - Gate: resolver tests green with fake providers (no real crypto yet).
 
@@ -407,7 +407,7 @@ Conventions: each step lists **Files**, **API**, **Tests first**, **Gate**. TDD 
   public static IReadOnlyDictionary<string,string> DecryptToDictionary(...); // flatten ":" AFTER verify
   public static T Decrypt<T>(...); // System.Text.Json bind AFTER verify
   public sealed record SopsOptions { string? FilePath; IReadOnlyList<string> AgeIdentities; IReadOnlyList<PgpKey> PgpKeys; ... KMS clients (Phase 2); };
-  public sealed class SopsException : Exception; public sealed class MacMismatchException : SopsException; public sealed class SopsKeyException : SopsException { IReadOnlyList<Exception> Inner; }
+  public sealed class MacMismatchException : Exception; public sealed class SopsMetadataException : Exception;
   ```
 - Flow: detect store → load → resolve data key → decrypt `mac` field → walk+decrypt values → compute+compare `%X` → throw `MacMismatchException` on mismatch → return.
 - Tests: `MacTests.cs` (valid, tampered → mismatch, `mac_only_encrypted`, comment-in-sequence), `SopsFileTests.cs` (YAML+JSON+Dotenv+INI+Binary end-to-end vs `.plain` expected).
@@ -454,7 +454,7 @@ Apps read encrypted secrets at startup - they don't typically write them back. E
 
 ### 2. AES-GCM Backend TBD by Spike (not assumed S.S.C.)
 - Upstream uses 32-byte nonces (`nonceSize=32`). .NET `AesGcm` historically accepts only 12-byte nonces.
-- **Phase 0 decides:** S.S.C. if it accepts 32B nonces on net8.0+, else BouncyCastle `GcmBlockCipher` for value decryption. Either way pure managed, no native deps.
+- **Phase 0 decides:** S.S.C. if it accepts 32B nonces on net10.0, else BouncyCastle `GcmBlockCipher` for value decryption. Either way pure managed, no native deps.
 - **Contract (both backends must satisfy):** `Decrypt(key[32], nonce[32], ciphertext, tag[16], aadUtf8) → plaintext`. Ciphertext+tag split: `data=out[:len-16]`, `tag=out[len-16:]`. AAD is UTF-8 bytes of `Join(path,":")+":"`. Never truncate/pad the nonce to 12 bytes.
 - **Age:** AgeSharp for X25519/scrypt/ChaCha20-Poly1305 stanza decrypt. Wire as `AgeMasterKey`. Do NOT call `AgeSharp.AgeKeygen` unless it exists in the pinned version - discover first.
 - **PGP:** BouncyCastle.Cryptography (pinned 2.x). Ed25519/curve25519 support is limited - throw a clear error for unsupported key types, don't fallback to subprocess.

@@ -6,13 +6,13 @@ namespace Nops.Core.Stores;
 /// <summary>
 /// Represents a parsed SOPS encrypted value: ENC[AES256_GCM,data:...,iv:...,tag:...,type:...].
 /// </summary>
-public record EncryptedValue(byte[] Data, byte[] Iv, byte[] Tag, string DataType);
+internal record EncryptedValue(byte[] Data, byte[] Iv, byte[] Tag, string DataType);
 
 /// <summary>
 /// Parser for SOPS encrypted values.
 /// Matches the upstream regex from sops/aes/cipher.go:55 with no trailing $ anchor.
 /// </summary>
-public static class EncryptedValueParser
+internal static class EncryptedValueParser
 {
     // Upstream regex (sops/aes/cipher.go:55) - NO trailing $ anchor
     private static readonly Regex EncryptedValueRegex = new(

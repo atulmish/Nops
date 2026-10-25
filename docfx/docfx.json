@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../src",
+          "files": [
+            "Nops.Core/*.csproj",
+            "Nops.Configuration/*.csproj",
+            "Nops.Core.AwsKms/*.csproj",
+            "Nops.Core.GcpKms/*.csproj",
+            "Nops.Core.Azkv/*.csproj",
+            "Nops.Core.Vault/*.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "properties": { "TargetFramework": "net10.0" }
+    }
+  ],
+  "build": {
+    "content": [
+      { "files": ["api/**.yml", "api/index.md"] },
+      { "files": ["index.md", "toc.yml"] },
+      { "files": ["**/*.md", "toc.yml"], "src": "../docs", "dest": "docs" },
+      { "files": ["CHANGELOG.md"], "src": ".." }
+    ],
+    "resource": [
+      { "files": ["images/**"], "src": "../docs" }
+    ],
+    "output": "_site",
+    "template": ["default", "modern", "templates/brand"],
+    "globalMetadata": {
+      "_appName": "Nops",
+      "_appTitle": "Nops: SOPS for .NET",
+      "_appLogoPath": "images/logo.svg",
+      "_appFaviconPath": "images/logo.png",
+      "_appFooter": "MIT licensed. Nops reimplements the SOPS file format in C#; SOPS itself is MPL-2.0.",
+      "_enableSearch": true,
+      "_gitContribute": { "repo": "https://github.com/atulmish/Nops", "branch": "main" },
+      "pdf": false
+    }
+  }
+}

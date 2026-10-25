@@ -8,15 +8,22 @@
     <IsPackable>true</IsPackable>
     <PackageId>Nops.Configuration</PackageId>
     <Authors>Nops Contributors</Authors>
-    <Description>ASP.NET Core configuration provider for SOPS-encrypted files.</Description>
+    <Description>Microsoft.Extensions.Configuration provider for SOPS-encrypted files (YAML, JSON, dotenv, INI) with reload on change. Works with ASP.NET Core, the generic host and console apps.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nops.Configuration.Tests" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Nops.Core\Nops.Core.csproj" />
   </ItemGroup>
 
+  <!-- Plain Microsoft.Extensions packages (not the ASP.NET Core shared framework) so the
+       provider works in console apps, worker services and Azure Functions too. -->
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
 </Project>

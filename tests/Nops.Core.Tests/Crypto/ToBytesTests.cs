@@ -66,10 +66,20 @@ public class ToBytesTests
     [Fact]
     public void ToDouble_LargeExponent()
     {
-        // Edge case from PLAN.md: 1e20 should not have trailing zeros
+        // Edge case from PLAN.md: 1e20 uses Go FormatFloat('f', -1, 64) semantics
+        // (fixed-point notation, no exponent, no trailing zeros).
         var input = 1e20;
         var result = Nops.Core.Crypto.ToBytes.Convert(input);
-        Assert.Equal(Encoding.UTF8.GetBytes("1E+20"), result);
+        Assert.Equal(Encoding.UTF8.GetBytes("100000000000000000000"), result);
+    }
+
+    [Fact]
+    public void ToDouble_SmallExponent()
+    {
+        // Go FormatFloat('f', -1, 64) for 1e-7 gives fixed-point "0.0000001".
+        var input = 1e-7;
+        var result = Nops.Core.Crypto.ToBytes.Convert(input);
+        Assert.Equal(Encoding.UTF8.GetBytes("0.0000001"), result);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
-# This is a public comment
-public_value: visible
-# sops_encrypted_comment: this should be encrypted
+# sops_secret
 secret_value: hidden-data
-# another_public_comment
+# public_comment
+public_value: visible
 more_secret: also-hidden
+# sops_secret2
+another_secret: more-hidden

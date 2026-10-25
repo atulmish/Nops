@@ -5,17 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- In your app: <PackageReference Include="Nops.Configuration" Version="1.0.0" /> -->
     <ProjectReference Include="..\..\src\Nops.Configuration\Nops.Configuration.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="secrets.sops.yaml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Update="secrets.sops.yaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

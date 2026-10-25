@@ -7,78 +7,88 @@ namespace Nops.Core.Tests.Keys;
 
 public class DataKeyResolverTests
 {
-    // Fake master key provider for testing
-    private class FakeMasterKey : Nops.Core.Keys.IMasterKeyProvider, Nops.Core.Keys.IDataKeyProvider
+    // Fake master key provider for testing. When an enc filter is supplied the
+    // provider only succeeds for that encrypted value (models real recipient matching).
+    private class FakeMasterKey : Nops.Core.Keys.IMasterKeyProvider
     {
-        public string KeyType => "fake";
+        private readonly string? _enc;
+
+        public FakeMasterKey(string keyType, string? enc = null)
+        {
+            KeyType = keyType;
+            _enc = enc;
+        }
+
+        public string KeyType { get; }
         public byte[]? DataKey { get; set; }
 
         public Task<byte[]?> DecryptShareAsync(string enc, System.Threading.CancellationToken ct)
         {
-            return Task.FromResult(DataKey);
+            return Task.FromResult(_enc == null || _enc == enc ? DataKey : null);
         }
     }
 
     [Fact]
     public async Task Resolve_SingleGroup_FirstSuccessWins()
     {
-        var metadata = CreateMetadataWithAge(
-            new[] {
-                ("recipient1", "enc1"),
-                ("recipient2", "enc2")
-            });
+        // threshold 0 (unset) → single group: any master key can decrypt the data key.
+        var metadata = CreateMetadataWithAge(new[] { ("recipient1", "enc1"), ("recipient2", "enc2") }, threshold: 0);
 
-        // With each provider as its own group, we need both to succeed for Shamir
-        var key1 = new FakeMasterKey { DataKey = null }; // fails
-        var key2 = new FakeMasterKey { DataKey = new byte[32] }; // succeeds
+        var key1 = new FakeMasterKey("age") { DataKey = null }; // fails
+        var key2 = new FakeMasterKey("age") { DataKey = new byte[32] }; // succeeds
 
-        // Since threshold=0 means len(groups)=2, and we only have 1 success, it should fail
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() =>
-            Nops.Core.Keys.DataKeyResolver.ResolveAsync(
-                metadata,
-                new[] { key1, key2 },
-                System.Threading.CancellationToken.None));
+        var result = await Nops.Core.Keys.DataKeyResolver.ResolveAsync(
+            metadata, new[] { key1, key2 }, System.Threading.CancellationToken.None);
 
-        Assert.NotNull(ex.Message);
+        Assert.Equal(key2.DataKey, result);
     }
 
     [Fact]
     public async Task Resolve_MultiGroup_ShamirCombine()
     {
-        // Create a 2-of-3 Shamir setup (shares WITHOUT index byte for resolver)
-        var secret = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+        // 2-of-3 Shamir shares over a 32-byte data key (each share is 33 bytes).
+        var secret = Enumerable.Range(0, 32).Select(i => (byte)i).ToArray();
         var shares = Nops.Core.Crypto.Shamir.Split(secret, numShares: 3, threshold: 2);
 
-        // Strip index bytes from shares (resolver gets raw share values)
-        var rawShare1 = shares[0][1..];
-        var rawShare2 = shares[1][1..];
+        // Two key groups (age + pgp) → Shamir.
+        var metadata = CreateMetadataWithAgeAndPgp(threshold: 2);
 
-        var metadata = CreateMetadataWithShamirThreshold(2);
-
-        var key1 = new FakeMasterKey { DataKey = rawShare1 };
-        var key2 = new FakeMasterKey { DataKey = rawShare2 };
+        var ageKey = new FakeMasterKey("age", "e1") { DataKey = shares[0] };
+        var pgpKey = new FakeMasterKey("pgp", "enc1") { DataKey = shares[1] };
 
         var result = await Nops.Core.Keys.DataKeyResolver.ResolveAsync(
-            metadata,
-            new[] { key1, key2 },
-            System.Threading.CancellationToken.None);
+            metadata, new[] { ageKey, pgpKey }, System.Threading.CancellationToken.None);
 
         Assert.Equal(secret, result);
     }
 
     [Fact]
-    public async Task Resolve_AllFail_ThrowsAggregateException()
+    public async Task Resolve_ThreeGroups_TwoSharesCombine()
     {
-        var metadata = CreateMetadataWithAge(
-            new[] { ("r1", "e1") });
+        var secret = Enumerable.Range(0, 32).Select(i => (byte)(i * 3)).ToArray();
+        var shares = Nops.Core.Crypto.Shamir.Split(secret, numShares: 3, threshold: 2);
 
-        var key = new FakeMasterKey { DataKey = null };
+        var metadata = CreateMetadataWithThreeGroups(threshold: 2);
+
+        // Provide only two of the three groups (2-of-3).
+        var share1 = new FakeMasterKey("age", "e1") { DataKey = shares[0] };
+        var share2 = new FakeMasterKey("age", "e2") { DataKey = shares[1] };
+
+        var result = await Nops.Core.Keys.DataKeyResolver.ResolveAsync(
+            metadata, new[] { share1, share2 }, System.Threading.CancellationToken.None);
+
+        Assert.Equal(secret, result);
+    }
+
+    [Fact]
+    public async Task Resolve_AllFail_Throws()
+    {
+        var metadata = CreateMetadataWithAge(new[] { ("r1", "e1") }, threshold: 0);
+        var key = new FakeMasterKey("age") { DataKey = null };
 
         var ex = await Assert.ThrowsAnyAsync<Exception>(() =>
             Nops.Core.Keys.DataKeyResolver.ResolveAsync(
-                metadata,
-                new[] { key },
-                System.Threading.CancellationToken.None));
+                metadata, new[] { key }, System.Threading.CancellationToken.None));
 
         Assert.NotNull(ex.Message);
     }
@@ -86,41 +96,33 @@ public class DataKeyResolverTests
     [Fact]
     public async Task Resolve_ThresholdNotMet_Throws()
     {
-        var secret = new byte[] { 0x01 };
+        var secret = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
         var shares = Nops.Core.Crypto.Shamir.Split(secret, numShares: 3, threshold: 2);
 
-        var metadata = CreateMetadataWithShamirThreshold(2);
+        var metadata = CreateMetadataWithAgeAndPgp(threshold: 2);
 
-        // Only provide 1 share when threshold is 2 (strip index byte)
-        var key = new FakeMasterKey { DataKey = shares[0][1..] };
+        // Only the age group succeeds; pgp group has no provider.
+        var ageKey = new FakeMasterKey("age", "e1") { DataKey = shares[0] };
 
         var ex = await Assert.ThrowsAnyAsync<Exception>(() =>
             Nops.Core.Keys.DataKeyResolver.ResolveAsync(
-                metadata,
-                new[] { key },
-                System.Threading.CancellationToken.None));
+                metadata, new[] { ageKey }, System.Threading.CancellationToken.None));
 
         Assert.NotNull(ex.Message);
     }
 
     [Fact]
-    public async Task Resolve_ThresholdZero_MeansAllGroups()
+    public async Task Resolve_ThresholdZero_MeansSingleGroup()
     {
-        var secret = new byte[] { 0x42 };
-        var shares = Nops.Core.Crypto.Shamir.Split(secret, numShares: 2, threshold: 2);
+        var metadata = CreateMetadataWithAge(new[] { ("r1", "e1") }, threshold: 0);
 
-        // shamir_threshold == 0 means use number of groups
-        var metadata = CreateMetadataWithShamirThreshold(0);
-
-        var key1 = new FakeMasterKey { DataKey = shares[0][1..] }; // Strip index
-        var key2 = new FakeMasterKey { DataKey = shares[1][1..] }; // Strip index
+        var key1 = new FakeMasterKey("age") { DataKey = new byte[32] };
+        var key2 = new FakeMasterKey("age") { DataKey = new byte[32] };
 
         var result = await Nops.Core.Keys.DataKeyResolver.ResolveAsync(
-            metadata,
-            new[] { key1, key2 },
-            System.Threading.CancellationToken.None);
+            metadata, new[] { key1, key2 }, System.Threading.CancellationToken.None);
 
-        Assert.Equal(secret, result);
+        Assert.Equal(key1.DataKey, result);
     }
 
     [Fact]
@@ -129,42 +131,110 @@ public class DataKeyResolverTests
         Console.WriteLine("=== DATA KEY RESOLVER ===");
         Console.WriteLine("Single group: first master key success returns data key");
         Console.WriteLine("Multi-group: collect >= threshold shares, combine with Shamir");
-        Console.WriteLine("shamir_threshold == 0: means len(KeyGroups)");
+        Console.WriteLine("shamir_threshold == 0: single group (no Shamir)");
         Console.WriteLine("=========================");
         Assert.True(true, "Spike complete");
     }
 
-    private static Nops.Core.Stores.SopsMetadata CreateMetadataWithAge((string, string)[] entries)
+    // Provider that fails with an explicit "unsupported" error (e.g. locked PGP key).
+    private class UnsupportedMasterKey : Nops.Core.Keys.IMasterKeyProvider
     {
-        var ageEntries = entries.Select(e => new Nops.Core.Stores.AgeEntry(e.Item1, e.Item2)).ToList();
+        public UnsupportedMasterKey(string keyType) => KeyType = keyType;
 
-        return new Nops.Core.Stores.SopsMetadata(
-            Mac: null,
-            Age: ageEntries,
-            Pgp: Array.Empty<Nops.Core.Stores.PgpEntry>(),
-            Kms: Array.Empty<object>(),
-            GcpKms: Array.Empty<object>(),
-            AzureKv: Array.Empty<object>(),
-            Hckms: Array.Empty<object>(),
-            HcVault: Array.Empty<object>(),
-            ShamirThreshold: 0,
-            UnencryptedSuffix: null, EncryptedSuffix: null,
-            UnencryptedRegex: null, EncryptedRegex: null,
-            UnencryptedCommentRegex: null, EncryptedCommentRegex: null,
-            MacOnlyEncrypted: false, Version: "3.10.2", LastModified: null);
+        public string KeyType { get; }
+
+        public Task<byte[]?> DecryptShareAsync(string enc, System.Threading.CancellationToken ct) =>
+            throw new NotSupportedException("PGP private key is encrypted but no passphrase was supplied.");
     }
 
-    private static Nops.Core.Stores.SopsMetadata CreateMetadataWithShamirThreshold(int threshold)
+    private class CountingMasterKey : Nops.Core.Keys.IMasterKeyProvider
     {
-        // Create metadata with multiple key groups (age entries in separate "groups")
-        var age1 = new List<Nops.Core.Stores.AgeEntry> { new("r1", "e1") };
-        var age2 = new List<Nops.Core.Stores.AgeEntry> { new("r2", "e2") };
+        private readonly Dictionary<string, byte[]> _shares;
 
-        // We need to simulate multiple key groups - for now just set threshold
-        return new Nops.Core.Stores.SopsMetadata(
+        public CountingMasterKey(Dictionary<string, byte[]> shares) => _shares = shares;
+
+        public string KeyType => "age";
+        public int Calls { get; private set; }
+
+        public Task<byte[]?> DecryptShareAsync(string enc, System.Threading.CancellationToken ct)
+        {
+            Calls++;
+            return Task.FromResult(_shares.TryGetValue(enc, out var share) ? share : null);
+        }
+    }
+
+    [Fact]
+    public async Task Resolve_UnsupportedProvider_DoesNotBlockOtherKeys()
+    {
+        var metadata = CreateMetadataWithAgeAndPgp(threshold: 0);
+        // Collapse to one group holding pgp first, then age.
+        metadata = metadata with
+        {
+            KeyGroups = new List<Nops.Core.KeyGroup>
+            {
+                new(new[]
+                {
+                    new Nops.Core.KeyGroupEntry("pgp", "enc1"),
+                    new Nops.Core.KeyGroupEntry("age", "e1"),
+                }),
+            },
+        };
+
+        var dataKey = Enumerable.Repeat((byte)7, 32).ToArray();
+        var providers = new Nops.Core.Keys.IMasterKeyProvider[]
+        {
+            new UnsupportedMasterKey("pgp"),
+            new FakeMasterKey("age", "e1") { DataKey = dataKey },
+        };
+
+        var result = await Nops.Core.Keys.DataKeyResolver.ResolveAsync(
+            metadata, providers, System.Threading.CancellationToken.None);
+
+        Assert.Equal(dataKey, result);
+    }
+
+    [Fact]
+    public async Task Resolve_OnlyUnsupportedProvider_SurfacesNotSupported()
+    {
+        var metadata = CreateMetadataWithAgeAndPgp(threshold: 0) with
+        {
+            KeyGroups = new List<Nops.Core.KeyGroup>
+            {
+                new(new[] { new Nops.Core.KeyGroupEntry("pgp", "enc1") }),
+            },
+        };
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => Nops.Core.Keys.DataKeyResolver.ResolveAsync(
+            metadata, new[] { new UnsupportedMasterKey("pgp") }, System.Threading.CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Resolve_MultiGroup_StopsOnceThresholdReached()
+    {
+        var secret = Enumerable.Range(0, 32).Select(i => (byte)i).ToArray();
+        var shares = Nops.Core.Crypto.Shamir.Split(secret, numShares: 3, threshold: 2);
+        var provider = new CountingMasterKey(new Dictionary<string, byte[]>
+        {
+            ["e1"] = shares[0],
+            ["e2"] = shares[1],
+            ["e3"] = shares[2],
+        });
+
+        var result = await Nops.Core.Keys.DataKeyResolver.ResolveAsync(
+            CreateMetadataWithThreeGroups(threshold: 2), new[] { provider }, System.Threading.CancellationToken.None);
+
+        Assert.Equal(secret, result);
+        Assert.Equal(2, provider.Calls);
+    }
+
+    private static Nops.Core.SopsMetadata CreateMetadataWithAge((string, string)[] entries, int threshold)
+    {
+        var ageEntries = entries.Select(e => new Nops.Core.AgeEntry(e.Item1, e.Item2)).ToList();
+
+        return new Nops.Core.SopsMetadata(
             Mac: null,
-            Age: age1.Concat(age2).ToList(),
-            Pgp: Array.Empty<Nops.Core.Stores.PgpEntry>(),
+            Age: ageEntries,
+            Pgp: Array.Empty<Nops.Core.PgpEntry>(),
             Kms: Array.Empty<object>(),
             GcpKms: Array.Empty<object>(),
             AzureKv: Array.Empty<object>(),
@@ -175,5 +245,60 @@ public class DataKeyResolverTests
             UnencryptedRegex: null, EncryptedRegex: null,
             UnencryptedCommentRegex: null, EncryptedCommentRegex: null,
             MacOnlyEncrypted: false, Version: "3.10.2", LastModified: null);
+    }
+
+    private static Nops.Core.SopsMetadata CreateMetadataWithAgeAndPgp(int threshold)
+    {
+        var ageEntries = new List<Nops.Core.AgeEntry> { new("r1", "e1") };
+        var pgpEntries = new List<Nops.Core.PgpEntry> { new("fp1", "enc1", null) };
+
+        // Explicit key groups: one age group and one pgp group (Shamir).
+        var keyGroups = new List<Nops.Core.KeyGroup>
+        {
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e1") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("pgp", "enc1") }),
+        };
+
+        return new Nops.Core.SopsMetadata(
+            Mac: null,
+            Age: ageEntries,
+            Pgp: pgpEntries,
+            Kms: Array.Empty<object>(),
+            GcpKms: Array.Empty<object>(),
+            AzureKv: Array.Empty<object>(),
+            Hckms: Array.Empty<object>(),
+            HcVault: Array.Empty<object>(),
+            ShamirThreshold: threshold,
+            UnencryptedSuffix: null, EncryptedSuffix: null,
+            UnencryptedRegex: null, EncryptedRegex: null,
+            UnencryptedCommentRegex: null, EncryptedCommentRegex: null,
+            MacOnlyEncrypted: false, Version: "3.10.2", LastModified: null,
+            KeyGroups: keyGroups);
+    }
+
+    private static Nops.Core.SopsMetadata CreateMetadataWithThreeGroups(int threshold)
+    {
+        var keyGroups = new List<Nops.Core.KeyGroup>
+        {
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e1") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e2") }),
+            new(new[] { new Nops.Core.KeyGroupEntry("age", "e3") }),
+        };
+
+        return new Nops.Core.SopsMetadata(
+            Mac: null,
+            Age: new List<Nops.Core.AgeEntry> { new("r1", "e1"), new("r2", "e2"), new("r3", "e3") },
+            Pgp: Array.Empty<Nops.Core.PgpEntry>(),
+            Kms: Array.Empty<object>(),
+            GcpKms: Array.Empty<object>(),
+            AzureKv: Array.Empty<object>(),
+            Hckms: Array.Empty<object>(),
+            HcVault: Array.Empty<object>(),
+            ShamirThreshold: threshold,
+            UnencryptedSuffix: null, EncryptedSuffix: null,
+            UnencryptedRegex: null, EncryptedRegex: null,
+            UnencryptedCommentRegex: null, EncryptedCommentRegex: null,
+            MacOnlyEncrypted: false, Version: "3.10.2", LastModified: null,
+            KeyGroups: keyGroups);
     }
 }

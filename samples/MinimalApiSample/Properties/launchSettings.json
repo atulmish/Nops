@@ -3,10 +3,11 @@
     "MinimalApiSample": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "applicationUrl": "http://localhost:5000",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5080",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "SOPS_AGE_KEY_FILE": "../../tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt"
       }
     }
   }

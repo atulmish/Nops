@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using Nops.Core.Stores;
 
 namespace Nops.Core.Crypto;
 
@@ -8,7 +9,7 @@ namespace Nops.Core.Crypto;
 /// Canonical encoding for SOPS MAC input (ToBytes from sops.go:980-1003).
 /// Each .NET type maps to a specific UTF-8 byte representation.
 /// </summary>
-public static class ToBytes
+internal static class ToBytes
 {
     /// <summary>
     /// Convert a value to its canonical SOPS byte representation.
@@ -29,6 +30,8 @@ public static class ToBytes
             bool b => Encoding.UTF8.GetBytes(b ? "True" : "False"),
             byte[] bytes => bytes,
             DateTime dt => EncodeDateTime(dt),
+            DateTimeOffset dto => EncodeDateTimeOffset(dto),
+            Comment comment => Convert(comment.Value),
             _ => throw new InvalidOperationException(
                 $"Unsupported type for SOPS ToBytes: {value.GetType().Name}. " +
                 "Supported types: string, int, long, float, double, bool, byte[], DateTime.")
@@ -43,42 +46,108 @@ public static class ToBytes
     private static byte[] EncodeFloat(object number)
     {
         // Go FormatFloat('f', -1, 64) semantics:
-        // - No trailing zeros
-        // - No decimal point for integer values
         // - Shortest representation that round-trips
+        // - Always fixed-point (decimal) notation - never scientific notation
+        // - No trailing zeros after the decimal point
+        // - No decimal point for integer values
 
         string str;
         if (number is double d)
         {
-            // Use Roundtrip format which gives shortest round-trip representation
+            if (double.IsNaN(d))
+                return Encoding.UTF8.GetBytes("NaN");
+            if (double.IsPositiveInfinity(d))
+                return Encoding.UTF8.GetBytes("+Inf");
+            if (double.IsNegativeInfinity(d))
+                return Encoding.UTF8.GetBytes("-Inf");
+            if (d == 0.0)
+                return Encoding.UTF8.GetBytes(double.IsNegative(d) ? "-0" : "0");
+
             str = d.ToString("R", CultureInfo.InvariantCulture);
-
-            // Handle special cases
-            if (d == 0.0 && Math.Sign(d) < 0)
-                return Encoding.UTF8.GetBytes("0");
-
-            // Ensure no trailing zeros after decimal point
-            if (str.Contains('.'))
-            {
-                str = str.TrimEnd('0').TrimEnd('.');
-            }
         }
         else if (number is float f)
         {
+            if (float.IsNaN(f))
+                return Encoding.UTF8.GetBytes("NaN");
+            if (float.IsPositiveInfinity(f))
+                return Encoding.UTF8.GetBytes("+Inf");
+            if (float.IsNegativeInfinity(f))
+                return Encoding.UTF8.GetBytes("-Inf");
+            if (f == 0.0f)
+                return Encoding.UTF8.GetBytes(float.IsNegative(f) ? "-0" : "0");
+
             str = f.ToString("R", CultureInfo.InvariantCulture);
-            if (str.Contains('.'))
-                str = str.TrimEnd('0').TrimEnd('.');
         }
         else
         {
             return Encoding.UTF8.GetBytes(System.Convert.ToString(number, CultureInfo.InvariantCulture)!);
         }
 
-        // Handle the case where FormatFloat('f', -1, 64) would produce "0" for 0.0
-        if (str == "" || str == "-")
+        // Go 'f' format never uses scientific notation; expand any exponent.
+        str = ExpandExponent(str);
+
+        // Remove trailing zeros after the decimal point (and the point itself if empty).
+        if (str.Contains('.'))
+            str = str.TrimEnd('0').TrimEnd('.');
+
+        if (str.Length == 0 || str == "-")
             str = number is double dd && dd < 0 ? "-0" : "0";
 
         return Encoding.UTF8.GetBytes(str);
+    }
+
+    /// <summary>
+    /// Convert a .NET "R"-formatted scientific-notation string (e.g. "1E+20", "1E-07")
+    /// into fixed-point decimal notation, matching Go FormatFloat('f', -1, 64).
+    /// </summary>
+    private static string ExpandExponent(string s)
+    {
+        var eIdx = s.IndexOf('E');
+        if (eIdx < 0)
+            eIdx = s.IndexOf('e');
+        if (eIdx < 0)
+            return s;
+
+        var negative = s[0] == '-';
+        var mantissa = negative ? s[1..eIdx] : s[..eIdx];
+        var exp = int.Parse(s[(eIdx + 1)..], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+
+        var dot = mantissa.IndexOf('.');
+        string intPart, fracPart;
+        if (dot < 0)
+        {
+            intPart = mantissa;
+            fracPart = "";
+        }
+        else
+        {
+            intPart = mantissa[..dot];
+            fracPart = mantissa[(dot + 1)..];
+        }
+
+        var allDigits = intPart + fracPart;
+        var pointPos = intPart.Length + exp;
+        var sb = new StringBuilder(negative ? "-" : "");
+
+        if (pointPos <= 0)
+        {
+            sb.Append("0.");
+            sb.Append('0', -pointPos);
+            sb.Append(allDigits);
+        }
+        else if (pointPos >= allDigits.Length)
+        {
+            sb.Append(allDigits);
+            sb.Append('0', pointPos - allDigits.Length);
+        }
+        else
+        {
+            sb.Append(allDigits, 0, pointPos);
+            sb.Append('.');
+            sb.Append(allDigits, pointPos, allDigits.Length - pointPos);
+        }
+
+        return sb.ToString();
     }
 
     private static byte[] EncodeDateTime(DateTime dt)
@@ -97,5 +166,29 @@ public static class ToBytes
                 .ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture);
 
         return Encoding.UTF8.GetBytes(rfc3339);
+    }
+
+    private static byte[] EncodeDateTimeOffset(DateTimeOffset dto)
+    {
+        return Encoding.UTF8.GetBytes(FormatTimestamp(dto));
+    }
+
+    /// <summary>
+    /// Format a timestamp like Go's time.Time.MarshalText (RFC3339, "Z" for UTC,
+    /// numeric offset otherwise, fractional seconds trimmed of trailing zeros).
+    /// </summary>
+    public static string FormatTimestamp(DateTimeOffset dto)
+    {
+        var s = dto.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
+
+        var fraction = dto.ToString("fffffff", CultureInfo.InvariantCulture).TrimEnd('0');
+        if (fraction.Length > 0)
+            s += "." + fraction;
+
+        s += dto.Offset == TimeSpan.Zero
+            ? "Z"
+            : dto.ToString("zzz", CultureInfo.InvariantCulture);
+
+        return s;
     }
 }

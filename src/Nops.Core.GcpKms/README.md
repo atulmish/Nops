@@ -1,6 +1,6 @@
 # Nops.Core.GcpKms
 
-Google Cloud KMS master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
+Google Cloud KMS master key provider for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
 
 ## Installation
 
@@ -16,8 +16,7 @@ using Nops.Core.Keys;
 
 // Option 1: Application Default Credentials (ADC)
 var masterKey = new GcpKmsMasterKey(
-    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY"
+    resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key"
 );
 
 // Option 2: Explicit client with service account credentials
@@ -25,7 +24,6 @@ var client = KeyManagementServiceClient.Create(); // uses ADC by default
 
 var masterKey2 = new GcpKmsMasterKey(
     resourceName: "projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     client: client
 );
 
@@ -47,19 +45,11 @@ GCP KMS uses [Application Default Credentials (ADC)](https://cloud.google.com/do
 2. **Service account key**: Set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a JSON key file
 3. **GCE/GKE/GAE default service accounts**: Automatic when running on Google Cloud
 
-### Local Development with Emulator
-
-```bash
-# Start a local KMS emulator (requires gcloud SDK)
-gcloud kms emulators cloud-hsm --location=global --key-rings=my-kr --keys=my-key
-export GCP_KMS_EMULATOR_HOST=localhost:5000
-```
-
 ## IAM Permissions
 
 Minimum IAM role for KMS decrypt:
 
-```
+```text
 roles/cloudkms.cryptoKeyDecrypter
 ```
 
@@ -82,7 +72,7 @@ Unit tests run without dependencies:
 dotnet test tests/Nops.Core.GcpKms.Tests --filter FullyQualifiedName~GcpKmsEntryParserTests
 ```
 
-Integration tests require GCP credentials or emulator:
+Integration tests need real GCP credentials (Application Default Credentials) and a key you can decrypt with:
 
 ```bash
 GCP_LIVE_TEST=1 dotnet test tests/Nops.Core.GcpKms.Tests --filter FullyQualifiedName~GcpKmsIntegrationTests
@@ -90,4 +80,4 @@ GCP_LIVE_TEST=1 dotnet test tests/Nops.Core.GcpKms.Tests --filter FullyQualified
 
 ## License
 
-MIT - see [LICENSE](../../LICENSE).
+MIT - see [LICENSE](https://github.com/atulmish/Nops/blob/main/LICENSE).

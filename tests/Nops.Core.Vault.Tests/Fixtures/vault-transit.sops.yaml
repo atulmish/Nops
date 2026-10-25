@@ -1,0 +1,13 @@
+a: ENC[AES256_GCM,data:7g==,iv:v7m48ZSIZwfnqcFO9Sl0I3YCyZkJL2vMFj4Uk9Gh66I=,tag:Pfqk/sIykG/mV6+gugp4gw==,type:int]
+b: ENC[AES256_GCM,data:IJhw8/mg,iv:PNctV315tR7SyTpznGg12S8FvQXhwaDz25C0RPu5rE0=,tag:lV8gn+lJDD0zrl9B4LpFPA==,type:str]
+sops:
+    hc_vault:
+        - created_at: "2026-10-25T00:10:19Z"
+          enc: vault:v1:IUnabTjFDC2nwrMTclybOE66kyxIhcBsAmNWkLpmIJE=
+          engine_path: transit
+          key_name: mykey
+          vault_address: http://127.0.0.1:18200
+    lastmodified: "2026-10-25T00:10:19Z"
+    mac: ENC[AES256_GCM,data:aOSV0zlxRp14mf/rV6LcXl5jUweBHTiiiwFT8PDfxAeFb45KWQczaWLRmddUdlmskjwwjEnwLF9DpOMRnTsL1Bg/cCcovY7gLHu7e+Js6FNu+TbkRVZw+Lhmt3ypb2N3zZw9RokHE+Tsuv1i9DD2ZLg9saO2mX2gwuluudr7LzY=,iv:PNdgXDsrKrcFypDHc6hwU2vrqtO1hk2J8hNqi9MBkl0=,tag:kKH+kciu2UIiywOR7/IDDw==,type:str]
+    unencrypted_suffix: _unencrypted
+    version: 3.13.3

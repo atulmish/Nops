@@ -9,7 +9,7 @@ namespace Nops.Core.Stores;
 /// Store for binary files (stored as JSON with {data: ENC[...]} format).
 /// Read-only in MVP - encryption not supported.
 /// </summary>
-public static class BinaryStore
+internal static class BinaryStore
 {
     /// <summary>
     /// Load a SOPS-encrypted binary file (JSON format with data field).
@@ -19,39 +19,37 @@ public static class BinaryStore
         var jsonDoc = JsonDocument.Parse(fileBytes);
         var root = jsonDoc.RootElement;
 
+        var branch = new TreeBranch(isSequence: false);
+
         if (!root.TryGetProperty("data", out var dataElement))
             throw new InvalidOperationException("Binary file must have 'data' property");
 
-        var branches = new List<TreeBranch>();
-        var branch = new TreeBranch();
+        branch.Add(new TreeItem("data", dataElement.GetString() ?? ""));
 
-        // The encrypted data is stored as ENC[...] string
-        var encValue = dataElement.GetString() ?? "";
-        branch.Add(new TreeItem("data", encValue));
-
-        branches.Add(branch);
-
-        // Extract .sops metadata if present
-        SopsMetadata metadata;
-        if (root.TryGetProperty("sops", out var sopsElement))
+        // The metadata.format field is also encrypted and part of the MAC.
+        if (root.TryGetProperty("metadata", out var metaElement) &&
+            metaElement.TryGetProperty("format", out var formatElement))
         {
-            var dict = new Dictionary<string, object>();
-            foreach (var prop in sopsElement.EnumerateObject())
-            {
-                dict[prop.Name] = prop.Value.ToString();
-            }
-            metadata = SopsMetadataParser.Parse(dict);
-        }
-        else
-        {
-            metadata = new SopsMetadata(
-                null, Array.Empty<AgeEntry>(), Array.Empty<PgpEntry>(),
-                Array.Empty<object>(), Array.Empty<object>(), Array.Empty<object>(),
-                Array.Empty<object>(), Array.Empty<object>(),
-                0, null, null, null, null, null, null, false, null, null);
+            var metaBranch = new TreeBranch(isSequence: false);
+            metaBranch.Add(new TreeItem("format", formatElement.GetString() ?? ""));
+            branch.Add(new TreeItem("metadata", metaBranch));
         }
 
-        return new SopsTree(branches, metadata, filePath);
+        var metadata = ExtractMetadata(root);
+
+        return new SopsTree(new[] { branch }, metadata, filePath);
+    }
+
+    private static SopsMetadata ExtractMetadata(JsonElement root)
+    {
+        if (root.TryGetProperty("sops", out var sopsElement) && sopsElement.ValueKind == JsonValueKind.Object)
+        {
+            var sopsBranch = JsonStore.ParseJson(sopsElement) as TreeBranch;
+            if (sopsBranch != null)
+                return SopsMetadataParser.Parse(TreeConverter.ToDictionary(sopsBranch));
+        }
+
+        return SopsMetadataParser.Empty();
     }
 
     /// <summary>

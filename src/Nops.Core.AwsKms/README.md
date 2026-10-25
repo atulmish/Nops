@@ -1,6 +1,6 @@
 # Nops.Core.AwsKms
 
-AWS KMS master key provider for [Nops](https://github.com/getsops/nops) - in-process SOPS decryption.
+AWS KMS master key provider for [Nops](https://github.com/atulmish/Nops) - in-process SOPS decryption.
 
 ## Installation
 
@@ -17,7 +17,6 @@ using Nops.Core.Keys;
 // Option 1: Default credential chain (environment variables, IMDS, shared config)
 var masterKey = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234-5678-efgh",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     context: new List<KeyValuePair<string, string>>
     {
         new KeyValuePair<string, string>("Project", "myapp")
@@ -32,7 +31,6 @@ var client = new AmazonKMSClient(
 
 var masterKey2 = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234-5678-efgh",
-    encryptedShare: "BASE64_ENCODED_ENCRYPTED_DATA_KEY",
     client: client
 );
 
@@ -108,7 +106,6 @@ When creating `AwsKmsMasterKey`, pass the same context:
 ```csharp
 var key = new AwsKmsMasterKey(
     arn: "arn:aws:kms:us-east-1:123456789012:key/abcd-1234",
-    encryptedShare: "...",
     context: new[] { 
         new KeyValuePair<string, string>("Project", "myapp"),
         new KeyValuePair<string, string>("Environment", "production") 
@@ -124,13 +121,12 @@ Unit tests run without dependencies:
 dotnet test tests/Nops.Core.AwsKms.Tests --filter FullyQualifiedName~AwsKmsEntryParserTests
 ```
 
-Integration tests require LocalStack:
+Integration tests need a KMS endpoint (for example LocalStack, started as shown above):
 
 ```bash
-docker-compose -f tests/docker-compose.localstack.yml up -d
 AWS_LIVE_TEST=1 dotnet test tests/Nops.Core.AwsKms.Tests --filter FullyQualifiedName~AwsKmsIntegrationTests
 ```
 
 ## License
 
-MIT - see [LICENSE](../../LICENSE).
+MIT - see [LICENSE](https://github.com/atulmish/Nops/blob/main/LICENSE).

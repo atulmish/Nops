@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
 using Nops.Configuration;
 using Xunit;
 
@@ -18,7 +19,7 @@ public class SopsOptionsTests
     [Fact]
     public void DefaultValues_HaveSensibleDefaults()
     {
-        var options = new SopsOptions();
+        var options = new SopsConfigurationOptions();
 
         Assert.Null(options.FilePath);
         Assert.Null(options.FileKind);
@@ -27,7 +28,6 @@ public class SopsOptionsTests
         Assert.False(options.WatchForChanges);
         Assert.Null(options.ReloadInterval);
         Assert.False(options.Optional);
-        Assert.Equal(FileNotFoundMode.Throw, options.FileNotFoundMode);
         Assert.Equal(10 * 1024 * 1024, options.MaxFileSize);
     }
 
@@ -35,7 +35,7 @@ public class SopsOptionsTests
     public void ResolveMasterKeys_ReturnsMasterKeys_IfSet()
     {
         var fakeKey = new FakeMasterKey();
-        var options = new SopsOptions
+        var options = new SopsConfigurationOptions
         {
             MasterKeys = new[] { fakeKey }
         };
@@ -50,7 +50,7 @@ public class SopsOptionsTests
     public void ResolveMasterKeys_BuildsFromAgeIdentities()
     {
         var ageKey = "AGE-SECRET-KEY-1234567890abcdef";
-        var options = new SopsOptions
+        var options = new SopsConfigurationOptions
         {
             AgeIdentities = new[] { ageKey }
         };
@@ -62,10 +62,74 @@ public class SopsOptionsTests
     }
 
     [Fact]
+    public void ResolveMasterKeys_PathToAgeIdentityFile_LoadsEverySecretKey()
+    {
+        var keyFile = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllLines(keyFile, new[]
+            {
+                "# TEST-ONLY identities",
+                "# public key: age1qexample",
+                "AGE-SECRET-KEY-1AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "",
+                "AGE-SECRET-KEY-1BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+                "AGE-SECRET-KEY-1CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+            });
+
+            var options = new SopsConfigurationOptions
+            {
+                AgeIdentities = new[] { keyFile }
+            };
+
+            var resolved = options.ResolveMasterKeys();
+
+            // Comments, blank lines and the public-key line are ignored.
+            Assert.Equal(3, resolved.Count);
+            Assert.All(resolved, k => Assert.IsType<Nops.Core.Keys.AgeMasterKey>(k));
+        }
+        finally
+        {
+            File.Delete(keyFile);
+        }
+    }
+
+    [Fact]
+    public void ResolveMasterKeys_AgeIdentityFileMixedWithInlineKey_LoadsAll()
+    {
+        var keyFile = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllLines(keyFile, new[]
+            {
+                "AGE-SECRET-KEY-1AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "AGE-SECRET-KEY-1BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            });
+
+            var options = new SopsConfigurationOptions
+            {
+                AgeIdentities = new[]
+                {
+                    "AGE-SECRET-KEY-1CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                    keyFile,
+                }
+            };
+
+            var resolved = options.ResolveMasterKeys();
+
+            Assert.Equal(3, resolved.Count);
+        }
+        finally
+        {
+            File.Delete(keyFile);
+        }
+    }
+
+    [Fact]
     public void ResolveMasterKeys_BuildsFromPgpKeys()
     {
         var pgpKey = new byte[] { 0x01, 0x02, 0x03 };
-        var options = new SopsOptions
+        var options = new SopsConfigurationOptions
         {
             PgpKeys = new (byte[], string?)[] { (pgpKey, "passphrase") }
         };
@@ -80,7 +144,7 @@ public class SopsOptionsTests
     public void ResolveMasterKeys_PrefersMasterKeysOverDerived()
     {
         var customKey = new FakeMasterKey();
-        var options = new SopsOptions
+        var options = new SopsConfigurationOptions
         {
             MasterKeys = new[] { customKey },
             AgeIdentities = new[] { "AGE-SECRET-KEY-1234567890abcdef" }
@@ -113,7 +177,7 @@ public class SopsConfigurationSourceTests
     {
         var tempFile = Path.GetTempFileName() + ".sops.yaml";
         File.WriteAllText(tempFile, "# placeholder");
-        var options = new SopsOptions { FilePath = tempFile, Optional = true };
+        var options = new SopsConfigurationOptions { FilePath = tempFile, Optional = true };
         var source = new SopsConfigurationSource(options);
 
         var provider = source.Build(new ConfigurationBuilder());
@@ -127,22 +191,14 @@ public class ServiceCollectionExtensionsTests
     [Fact]
     public void AddSops_WithFilePath_AddsSource()
     {
-        var tempFile = Path.GetTempFileName() + ".sops.yaml";
-        File.WriteAllText(tempFile, "# placeholder");
-        try
-        {
-            var builder = new ConfigurationBuilder();
-            builder.AddSops(tempFile, opts => opts.Optional = true);
+        // An optional file that does not exist: the source is added and contributes nothing.
+        var missing = Path.Combine(Path.GetTempPath(), "nops-missing-" + Guid.NewGuid().ToString("N") + ".sops.yaml");
 
-            // The source was added - verify by building and checking providers
-            var config = builder.Build();
-            // If we got here without exception, the source was added successfully
-            Assert.NotNull(config);
-        }
-        finally
-        {
-            File.Delete(tempFile);
-        }
+        var builder = new ConfigurationBuilder();
+        builder.AddSops(missing, opts => opts.Optional = true);
+
+        var config = builder.Build();
+        Assert.IsType<SopsConfigurationProvider>(Assert.Single(config.Providers));
     }
 
     [Fact]
@@ -198,14 +254,14 @@ public class SopsConfigurationProviderTests
     [Fact]
     public void Constructor_ThrowsIfFilePathNotSet()
     {
-        var options = new SopsOptions();
+        var options = new SopsConfigurationOptions();
         Assert.Throws<ArgumentException>(() => new SopsConfigurationProvider(options));
     }
 
     [Fact]
     public void Constructor_ThrowsIfFileNotFoundAndNotOptional()
     {
-        var options = new SopsOptions
+        var options = new SopsConfigurationOptions
         {
             FilePath = "/tmp/nonexistent-file-12345.sops.yaml"
         };
@@ -216,7 +272,7 @@ public class SopsConfigurationProviderTests
     [Fact]
     public void Constructor_DoesNotThrowIfFileNotFoundAndOptional()
     {
-        var options = new SopsOptions
+        var options = new SopsConfigurationOptions
         {
             FilePath = "/tmp/nonexistent-file-12345.sops.yaml",
             Optional = true
@@ -235,7 +291,7 @@ public class SopsConfigurationProviderTests
 
         try
         {
-            var options = new SopsOptions
+            var options = new SopsConfigurationOptions
             {
                 FilePath = tempFile,
                 WatchForChanges = true
@@ -253,7 +309,7 @@ public class SopsConfigurationProviderTests
     }
 
     [Fact]
-    public void Load_WithMissingFile_HandlesAccordingToMode()
+    public void Load_OptionalAndMissing_ProducesEmptyConfig()
     {
         var tempFile = Path.GetTempFileName() + ".sops.yaml";
 
@@ -262,11 +318,10 @@ public class SopsConfigurationProviderTests
             // Delete the file before loading
             File.Delete(tempFile);
 
-            var options = new SopsOptions
+            var options = new SopsConfigurationOptions
             {
                 FilePath = tempFile,
-                Optional = true,
-                FileNotFoundMode = FileNotFoundMode.WarnAndContinue
+                Optional = true
             };
 
             var provider = new SopsConfigurationProvider(options);
@@ -323,7 +378,7 @@ public class SopsConfigurationProviderTests
 
     private static string DetectKind(string path)
     {
-        var provider = new SopsConfigurationProvider(new SopsOptions
+        var provider = new SopsConfigurationProvider(new SopsConfigurationOptions
         {
             FilePath = path,
             Optional = true
@@ -385,12 +440,12 @@ public class ConfigurationFlatteningTests
     [Fact]
     public void CommentNodes_SkippedInFlattening()
     {
-        // Comment keys (Nops.Core.Stores.Comment) should be skipped during flattening
+        // Comment keys (Nops.Core.Comment) should be skipped during flattening
         // They are not string keys, so they won't match `item.Key is string key`
 
-        var commentKey = new Nops.Core.Stores.Comment("This is a comment");
+        var commentKey = new Nops.Core.Comment("This is a comment");
 
-        Assert.IsType<Nops.Core.Stores.Comment>(commentKey);
+        Assert.IsType<Nops.Core.Comment>(commentKey);
         Assert.NotEqual(typeof(string), commentKey.GetType());
     }
 
@@ -460,5 +515,219 @@ public class MultiFileOverlayTests
 
         var keys = new[] { "a", "b" };
         Assert.Equal(2, keys.Length);
+    }
+}
+
+/// <summary>
+/// End-to-end tests: load a real SOPS-encrypted fixture through AddSops().
+/// </summary>
+public class SopsConfigurationFixtureTests
+{
+    private static readonly string FixtureDir = Path.Combine(AppContext.BaseDirectory, "Fixtures");
+
+    private static string LoadAgeSecretKey()
+    {
+        var keyFile = Path.Combine(FixtureDir, "AGE-TEST-KEY.txt");
+        return File.ReadAllLines(keyFile).First(l => l.StartsWith("AGE-SECRET-KEY-", StringComparison.Ordinal)).Trim();
+    }
+
+    [Fact]
+    public void AddSops_LoadsRealEncryptedFile()
+    {
+        var filePath = Path.Combine(FixtureDir, "secrets.sops.yaml");
+        var ageKey = LoadAgeSecretKey();
+
+        var builder = new ConfigurationBuilder();
+        builder.AddSops(filePath, opts => opts.AgeIdentities = new[] { ageKey });
+        var config = builder.Build();
+
+        Assert.Equal("hello world", config["myapp1"]);
+        Assert.Equal("admin", config["app2:db:user"]);
+        Assert.Equal("s3cret!", config["app2:db:password"]);
+        Assert.Equal("3.14", config["number"]);
+        Assert.Equal("True", config["somebooleans:0"]);
+        Assert.Equal("deep-secret", config["this:is:a:nested:value"]);
+    }
+
+    [Fact]
+    public void AddSops_LoadsRealEncryptedFile_FromAgeIdentityFilePath()
+    {
+        var filePath = Path.Combine(FixtureDir, "secrets.sops.yaml");
+        var keyFilePath = Path.Combine(FixtureDir, "AGE-TEST-KEY.txt");
+
+        var builder = new ConfigurationBuilder();
+        // Point AgeIdentities at the file itself, not at the key string.
+        builder.AddSops(filePath, opts => opts.AgeIdentities = new[] { keyFilePath });
+        var config = builder.Build();
+
+        Assert.Equal("hello world", config["myapp1"]);
+        Assert.Equal("admin", config["app2:db:user"]);
+    }
+
+    [Fact]
+    public void AddSops_WithWatchForChanges_ReReadsModifiedFile_WithoutLeakingWatchers()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "nops-watch-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var sourcePath = Path.Combine(tempDir, "watch.sops.yaml");
+        var encrypted = File.ReadAllBytes(Path.Combine(FixtureDir, "secrets.sops.yaml"));
+        File.WriteAllBytes(sourcePath, encrypted);
+
+        try
+        {
+            var keyFilePath = Path.Combine(FixtureDir, "AGE-TEST-KEY.txt");
+            var builder = new ConfigurationBuilder();
+            builder.AddSops(sourcePath, opts =>
+            {
+                opts.AgeIdentities = new[] { keyFilePath };
+                opts.WatchForChanges = true;
+                opts.ReloadInterval = TimeSpan.FromMilliseconds(50);
+            });
+            var config = builder.Build();
+
+            Assert.Equal("hello world", config["myapp1"]);
+
+            var changed = 0;
+            using var registration = ChangeToken.OnChange(
+                config.GetReloadToken,
+                () => Interlocked.Increment(ref changed));
+
+            // Rewrite the same (valid) encrypted content to trigger a reload.
+            File.WriteAllBytes(sourcePath, encrypted);
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (Volatile.Read(ref changed) == 0 && DateTime.UtcNow < deadline)
+                Thread.Sleep(50);
+
+            Assert.True(changed > 0, "expected a reload after the file changed");
+            // Value is still correct after the reload (no leaked/duplicated providers).
+            Assert.Equal("hello world", config["myapp1"]);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public void Optional_DoesNotHideAFileThatCannotBeDecrypted()
+    {
+        // Optional covers a missing file only: a present file the keys cannot open must still fail.
+        var tempFile = Path.GetTempFileName() + ".sops.yaml";
+        File.WriteAllBytes(tempFile, File.ReadAllBytes(Path.Combine(FixtureDir, "secrets.sops.yaml")));
+
+        try
+        {
+            var builder = new ConfigurationBuilder();
+            builder.AddSops(tempFile, opts =>
+            {
+                opts.Optional = true;
+                opts.UseSopsEnvironment = false;   // no key available
+            });
+
+            Assert.Throws<InvalidOperationException>(() => builder.Build());
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void DisposingTheConfigurationRoot_DisposesTheProvider_AndStopsWatching()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "nops-dispose-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var path = Path.Combine(tempDir, "d.sops.yaml");
+        File.Copy(Path.Combine(FixtureDir, "secrets.sops.yaml"), path);
+
+        try
+        {
+            var builder = new ConfigurationBuilder();
+            builder.AddSops(path, opts =>
+            {
+                opts.AgeIdentities = new[] { Path.Combine(FixtureDir, "AGE-TEST-KEY.txt") };
+                opts.WatchForChanges = true;
+                opts.ReloadInterval = TimeSpan.FromMilliseconds(20);
+            });
+            var root = builder.Build();
+            var changed = 0;
+            using var registration = ChangeToken.OnChange(root.GetReloadToken, () => Interlocked.Increment(ref changed));
+
+            ((IDisposable)root).Dispose();
+            File.AppendAllText(path, "\n# touched after dispose\n");
+            Thread.Sleep(400);
+
+            Assert.Equal(0, changed);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("libc", SetLastError = true)]
+    private static extern int rename(string oldPath, string newPath);
+
+    [Fact]
+    public void Watcher_SeesKubernetesStyleSymlinkSwap_AndKeepsOldValuesWhenReloadFails()
+    {
+        if (OperatingSystem.IsWindows())
+            return;   // creating symlinks needs elevated rights on Windows
+
+        // Layout of a mounted Secret/ConfigMap volume: file -> ..data/file, ..data -> <timestamped dir>.
+        // The kubelet publishes an update by atomically re-pointing ..data; the file itself is never written.
+        var root = Path.Combine(Path.GetTempPath(), "nops-k8s-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "v1"));
+        Directory.CreateDirectory(Path.Combine(root, "v2"));
+        Directory.CreateDirectory(Path.Combine(root, "v3"));
+        File.Copy(Path.Combine(FixtureDir, "secrets.sops.yaml"), Path.Combine(root, "v1", "secrets.sops.yaml"));
+        File.Copy(Path.Combine(FixtureDir, "nested.sops.yaml"), Path.Combine(root, "v2", "secrets.sops.yaml"));
+        File.WriteAllText(Path.Combine(root, "v3", "secrets.sops.yaml"), "not a sops file");
+        Directory.CreateSymbolicLink(Path.Combine(root, "..data"), "v1");
+        Directory.CreateSymbolicLink(Path.Combine(root, "secrets.sops.yaml"), Path.Combine("..data", "secrets.sops.yaml"));
+
+        void Swap(string version)
+        {
+            var tmp = Path.Combine(root, "..data_tmp");
+            Directory.CreateSymbolicLink(tmp, version);
+            if (rename(tmp, Path.Combine(root, "..data")) != 0)   // rename(2) over the old symlink
+                throw new IOException("rename failed: " + System.Runtime.InteropServices.Marshal.GetLastPInvokeError());
+        }
+
+        try
+        {
+            Exception? reloadError = null;
+            var builder = new ConfigurationBuilder();
+            builder.AddSops(Path.Combine(root, "secrets.sops.yaml"), opts =>
+            {
+                opts.AgeIdentities = new[] { Path.Combine(FixtureDir, "AGE-TEST-KEY.txt") };
+                opts.WatchForChanges = true;
+                opts.ReloadInterval = TimeSpan.FromMilliseconds(50);
+                opts.OnReloadError = ex => reloadError = ex;
+            });
+            using var config = (ConfigurationRoot)builder.Build();
+            Assert.Equal("hello world", config["myapp1"]);
+
+            Swap("v2");
+            WaitFor(() => config["myapp1"] == null);
+            Assert.NotNull(config["level1:level2:level3:level4:secret"]);
+
+            // A bad update is reported and the previous values stay.
+            Swap("v3");
+            WaitFor(() => reloadError != null);
+            Assert.NotNull(config["level1:level2:level3:level4:secret"]);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { /* best effort */ }
+        }
+
+        static void WaitFor(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (!condition() && DateTime.UtcNow < deadline)
+                Thread.Sleep(50);
+            Assert.True(condition(), "timed out waiting for the configuration to change");
+        }
     }
 }

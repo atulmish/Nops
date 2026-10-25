@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Math;
-using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities.Encoders;
 using Nops.Core.Keys;
 
@@ -20,10 +18,13 @@ namespace Nops.Core.Keys;
 /// </summary>
 public class PgpMasterKey : IMasterKeyProvider
 {
+    /// <summary>
+    /// The key type identifier ("pgp").
+    /// </summary>
     public string KeyType => "pgp";
 
     /// <summary>
-    /// The PGP fingerprint (hex string).
+    /// The PGP fingerprint (hex string). May be empty to match any key in the ring.
     /// </summary>
     public string Fingerprint { get; }
 
@@ -38,6 +39,12 @@ public class PgpMasterKey : IMasterKeyProvider
     /// </summary>
     public string? Passphrase { get; }
 
+    /// <summary>
+    /// Creates a PGP master key provider.
+    /// </summary>
+    /// <param name="fingerprint">The key fingerprint (hex), or empty to match any key.</param>
+    /// <param name="privateKeyBytes">The secret key, ASCII-armored or binary.</param>
+    /// <param name="passphrase">The key's passphrase, if it has one.</param>
     public PgpMasterKey(string fingerprint, byte[]? privateKeyBytes = null, string? passphrase = null)
     {
         Fingerprint = fingerprint;
@@ -54,90 +61,15 @@ public class PgpMasterKey : IMasterKeyProvider
         if (string.IsNullOrEmpty(enc))
             return null;
 
-        // Must have a private key to decrypt
         if (PrivateKeyBytes == null || PrivateKeyBytes.Length == 0)
             return null;
 
         try
         {
-            // Parse the ASCII-armored PGP message
-            using var ms = new MemoryStream(PrivateKeyBytes);
-
-            // Try to parse as armored first, then binary
-            PgpSecretKeyRing? secretKeyRing = null;
-
-            try
-            {
-                // Attempt armored parsing
-                using var armoredReader = new ArmoredInputStream(ms);
-                secretKeyRing = new PgpSecretKeyRing(armoredReader);
-            }
-            catch
-            {
-                // Try binary parsing
-                ms.Position = 0;
-                secretKeyRing = new PgpSecretKeyRing(ms);
-            }
-
-            if (secretKeyRing == null)
+            var secretKeyRing = LoadSecretKeyRing();
+            if (secretKeyRing == null || !MatchesFingerprint(secretKeyRing))
                 return null;
 
-            // Find matching secret key by fingerprint
-            var targetFingerprint = Hex.Decode(Fingerprint.Replace(":", "").Replace("-", "").ToLower());
-
-            PgpSecretKey? secretKey = null;
-            foreach (var sk in secretKeyRing.GetSecretKeys())
-            {
-                var fp = sk.GetFingerprint();
-                if (fp != null && fp.SequenceEqual(targetFingerprint))
-                {
-                    secretKey = sk;
-                    break;
-                }
-
-                // Also try by key ID as fallback
-                if (!string.IsNullOrEmpty(Fingerprint) && Fingerprint.Length == 16)
-                {
-                    var keyId = unchecked((long)Convert.ToUInt64(Fingerprint.Substring(Fingerprint.Length - 16), 16));
-                    if (sk.KeyId == keyId)
-                    {
-                        secretKey = sk;
-                        break;
-                    }
-                }
-            }
-
-            if (secretKey == null)
-                return null;
-
-            // Extract private key using passphrase
-            PgpPrivateKey? privateKey = null;
-            try
-            {
-                if (!string.IsNullOrEmpty(Passphrase))
-                {
-                    privateKey = secretKey.ExtractPrivateKey(Passphrase.ToCharArray());
-                }
-                else
-                {
-                    // No passphrase - try without encryption (unlikely for SOPS files)
-                    throw new NotSupportedException(
-                        "PGP private key requires a passphrase. SOPS does not support unencrypted PGP keys.");
-                }
-            }
-            catch (NotSupportedException)
-            {
-                throw; // Re-throw known exceptions
-            }
-            catch
-            {
-                return null; // Wrong passphrase or other error → try next key
-            }
-
-            if (privateKey == null)
-                return null;
-
-            // Parse the encrypted data from SOPS metadata
             var encBytes = Encoding.UTF8.GetBytes(enc);
 
             using var encMs = new MemoryStream(encBytes);
@@ -146,41 +78,45 @@ public class PgpMasterKey : IMasterKeyProvider
             var pgpFactory = new PgpObjectFactory(encArmored);
             var pgpObj = pgpFactory.NextPgpObject();
 
-            // Get PgpEncryptedDataList
             PgpEncryptedDataList? encDataList = null;
             if (pgpObj is PgpEncryptedDataList encryptedList)
-            {
                 encDataList = encryptedList;
-            }
             else if (pgpObj is PgpCompressedData compressedData)
-            {
                 encDataList = new PgpObjectFactory(compressedData.GetDataStream()).NextPgpObject() as PgpEncryptedDataList;
-            }
 
             if (encDataList == null)
                 return null;
 
-            // Find matching encrypted session key
             foreach (var encryptedKey in encDataList.GetEncryptedDataObjects())
             {
-                if (encryptedKey is PgpPublicKeyEncryptedData pkesKey)
+                if (encryptedKey is not PgpPublicKeyEncryptedData pkesKey)
+                    continue;
+
+                // gpg encrypts to the encryption subkey, not the primary key: look the
+                // secret key up by the recipient key ID of each encrypted-data packet.
+                var secretKey = secretKeyRing.GetSecretKey(pkesKey.KeyId);
+                if (secretKey == null)
+                    continue;
+
+                var privateKey = ExtractPrivateKey(secretKey);
+                if (privateKey == null)
+                    continue;
+
+                try
                 {
-                    // Check if this key matches our secret key
-                    if (pkesKey.KeyId == privateKey.KeyId)
-                    {
-                        try
-                        {
-                            // Decrypt the message; its plaintext is the data key share
-                            using var sessionStream = pkesKey.GetDataStream(privateKey);
-                            using var buffer = new MemoryStream();
-                            await sessionStream.CopyToAsync(buffer, ct);
-                            return buffer.ToArray();
-                        }
-                        catch
-                        {
-                            continue; // Try next key
-                        }
-                    }
+                    using var clearStream = pkesKey.GetDataStream(privateKey);
+                    var literal = ReadLiteralData(clearStream);
+                    if (literal == null)
+                        continue;
+
+                    using var literalStream = literal.GetInputStream();
+                    using var buffer = new MemoryStream();
+                    await literalStream.CopyToAsync(buffer, ct);
+                    return buffer.ToArray();
+                }
+                catch
+                {
+                    // Try next key
                 }
             }
 
@@ -189,6 +125,129 @@ public class PgpMasterKey : IMasterKeyProvider
         catch (NotSupportedException)
         {
             throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The decrypted stream is itself an OpenPGP message (gpg normally compresses it):
+    /// unwrap compressed packets down to the literal data that holds the data key.
+    /// </summary>
+    private static PgpLiteralData? ReadLiteralData(Stream clearStream)
+    {
+        var factory = new PgpObjectFactory(clearStream);
+        PgpObject? obj;
+        while ((obj = factory.NextPgpObject()) != null)
+        {
+            switch (obj)
+            {
+                case PgpLiteralData literal:
+                    return literal;
+                case PgpCompressedData compressed:
+                    factory = new PgpObjectFactory(compressed.GetDataStream());
+                    break;
+                    // Skip one-pass signature / signature / marker packets.
+            }
+        }
+
+        return null;
+    }
+
+    private PgpSecretKeyRing? LoadSecretKeyRing()
+    {
+        var bytes = PrivateKeyBytes!;
+
+        try
+        {
+            using var ms = new MemoryStream(bytes);
+            using var armoredReader = new ArmoredInputStream(ms);
+            return new PgpSecretKeyRing(armoredReader);
+        }
+        catch
+        {
+            // Not armored: read the bytes as a binary key ring. (A fresh stream, because disposing the
+            // armor reader above closes the one it wrapped.)
+            using var binary = new MemoryStream(bytes);
+            return new PgpSecretKeyRing(binary);
+        }
+    }
+
+    /// <summary>
+    /// True when <see cref="Fingerprint"/> is empty or identifies the primary key or any
+    /// subkey in the ring (by full fingerprint or trailing 64-bit key ID).
+    /// </summary>
+    private bool MatchesFingerprint(PgpSecretKeyRing secretKeyRing)
+    {
+        if (string.IsNullOrEmpty(Fingerprint))
+            return true;
+
+        var normalized = Fingerprint.Replace(":", "").Replace("-", "").Replace(" ", "").ToLowerInvariant();
+
+        byte[]? targetFingerprint = null;
+        if (normalized.Length % 2 == 0 && normalized.Length >= 2)
+        {
+            try
+            {
+                targetFingerprint = Hex.Decode(normalized);
+            }
+            catch (Exception)
+            {
+                // Malformed fingerprint: fall back to key-id matching only.
+                targetFingerprint = null;
+            }
+        }
+
+        long? targetKeyId = null;
+        if (normalized.Length >= 16)
+        {
+            var idHex = normalized[^16..];
+            if (ulong.TryParse(idHex, System.Globalization.NumberStyles.HexNumber,
+                    System.Globalization.CultureInfo.InvariantCulture, out var keyIdValue))
+            {
+                targetKeyId = unchecked((long)keyIdValue);
+            }
+        }
+
+        foreach (PgpSecretKey sk in secretKeyRing.GetSecretKeys())
+        {
+            if (targetFingerprint != null)
+            {
+                var fp = sk.PublicKey.GetFingerprint();
+                if (fp != null && fp.SequenceEqual(targetFingerprint))
+                    return true;
+            }
+
+            if (targetKeyId.HasValue && sk.KeyId == targetKeyId.Value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private PgpPrivateKey? ExtractPrivateKey(PgpSecretKey secretKey)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(Passphrase))
+                return secretKey.ExtractPrivateKey(Passphrase.ToCharArray());
+
+            // Unencrypted key: extract with an empty passphrase. If the key is actually
+            // encrypted, this throws - surface a clear error rather than silently ignoring.
+            return secretKey.ExtractPrivateKey(Array.Empty<char>());
+        }
+        catch (PgpException) when (string.IsNullOrEmpty(Passphrase))
+        {
+            throw new NotSupportedException(
+                "PGP private key is encrypted but no passphrase was supplied. " +
+                "Provide a passphrase or use an unencrypted key.");
+        }
+        catch (PgpException)
+        {
+            // Wrong passphrase → try the next key.
+            return null;
         }
         catch
         {

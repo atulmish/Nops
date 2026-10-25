@@ -15,9 +15,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         run: dotnet restore Nops.slnx
@@ -37,9 +35,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         run: dotnet restore Nops.slnx
@@ -47,8 +43,30 @@ jobs:
       - name: Build
         run: dotnet build Nops.slnx --no-restore -c Release
 
-      - name: Run tests
-        run: dotnet test Nops.slnx --no-build -c Release --filter "FullyQualifiedName!~Integration" --verbosity normal
+      - name: Run tests with coverage
+        run: dotnet test Nops.slnx --no-build -c Release --filter "FullyQualifiedName!~Integration" --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:coverage \
+            -assemblyfilters:"+Nops.*;-*.Tests" -reporttypes:"MarkdownSummaryGithub;Cobertura"
+          cat coverage/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce line coverage
+        run: |
+          rate=$(grep -oP '<coverage[^>]*line-rate="\K[0-9.]+' coverage/Cobertura.xml | head -1)
+          pct=$(awk -v r="$rate" 'BEGIN { printf "%.1f", r * 100 }')
+          echo "Line coverage: ${pct}% (minimum 95%)"
+          awk -v r="$rate" 'BEGIN { exit (r >= 0.95) ? 0 : 1 }' || { echo "::error::Line coverage ${pct}% is below the 95% minimum"; exit 1; }
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
 
       - name: Verify no cloud refs in Nops.Core
         run: |
@@ -77,12 +95,15 @@ jobs:
 
       - name: Verify fixtures match plaintext
         env:
-          SOPS_AGE_KEY: ${{ secrets.SOPS_TEST_AGE_KEY }}
+          SOPS_TEST_AGE_KEY: ${{ secrets.SOPS_TEST_AGE_KEY }}
         run: |
-          if [ -z "$SOPS_AGE_KEY" ]; then
-            echo "SOPS_TEST_AGE_KEY secret not set; using the committed test key"
-            export SOPS_AGE_KEY=$(grep AGE-SECRET-KEY tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt)
-          fi
+          # Fixtures are generated with the committed TEST-ONLY keys. The
+          # multi-keygroup fixture requires two of the three identities, so always
+          # include the committed keys (optionally alongside a CI-provided key).
+          committed=$(grep AGE-SECRET-KEY tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt | tr '\n' ' ')
+          export SOPS_AGE_KEY="${SOPS_TEST_AGE_KEY:-} $committed"
+          # pgp.sops.yaml is encrypted to the committed TEST-ONLY PGP key.
+          gpg --batch --import tests/Nops.Core.Tests/Fixtures/PGP-TEST-KEY.asc
           fail=0
           for f in tests/Nops.Core.Tests/Fixtures/*.sops.*; do
             plain="${f}.plain"

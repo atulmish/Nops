@@ -1,0 +1,10 @@
+- name: Quickstart
+  href: quickstart.md
+- name: Configuration reference
+  href: configuration.md
+- name: Deploying with Nops
+  href: deployment.md
+- name: Cloud KMS setup
+  href: cloud-kms.md
+- name: Test keys
+  href: test-keys.md

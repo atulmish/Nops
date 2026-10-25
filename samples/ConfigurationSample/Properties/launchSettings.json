@@ -2,9 +2,9 @@
   "profiles": {
     "ConfigurationSample": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "DOTNET_ENVIRONMENT": "Development",
+        "SOPS_AGE_KEY_FILE": "../../tests/Nops.Core.Tests/Fixtures/AGE-TEST-KEY.txt"
       }
     }
   }

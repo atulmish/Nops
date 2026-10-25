@@ -13,7 +13,7 @@ public class AzkvEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["vault"] = "https://my-vault.vault.azure.net",
+            ["vaultUrl"] = "https://my-vault.vault.azure.net",
             ["name"] = "my-secret-key",
             ["enc"] = "encrypted-data-key-share-base64"
         };
@@ -31,7 +31,7 @@ public class AzkvEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["vault"] = "https://my-vault.vault.azure.net",
+            ["vaultUrl"] = "https://my-vault.vault.azure.net",
             ["name"] = "my-key",
             ["enc"] = "share-data",
             ["version"] = "a1b2c3d4e5f6"
@@ -47,7 +47,7 @@ public class AzkvEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["vault"] = "https://my-vault.vault.azure.net",
+            ["vaultUrl"] = "https://my-vault.vault.azure.net",
             ["name"] = "my-key",
             ["enc"] = "share-data",
             ["created_at"] = DateTimeOffset.Parse("2025-01-20T12:00:00Z")
@@ -75,7 +75,7 @@ public class AzkvEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["vault"] = "https://my-vault.vault.azure.net",
+            ["vaultUrl"] = "https://my-vault.vault.azure.net",
             ["enc"] = "no-name"
         };
 
@@ -87,7 +87,7 @@ public class AzkvEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["vault"] = "https://my-vault.vault.azure.net",
+            ["vaultUrl"] = "https://my-vault.vault.azure.net",
             ["name"] = "my-key"
         };
 
@@ -107,7 +107,7 @@ public class AzkvEntryParserTests
     {
         var dict = new Dictionary<string, object>
         {
-            ["vault"] = "",
+            ["vaultUrl"] = "",
             ["name"] = "my-key",
             ["enc"] = "empty-vault"
         };

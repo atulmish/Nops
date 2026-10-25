@@ -29,7 +29,7 @@ body:
   - type: input
     attributes:
       label: Nops package version
-      placeholder: "1.0.0-preview.1"
+      placeholder: "1.0.0"
     validations:
       required: true
   - type: textarea

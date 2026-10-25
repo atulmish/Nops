@@ -1,90 +1,104 @@
-# Quickstart - Nops
+# Quickstart
 
-In-process SOPS decryption for .NET. Zero native dependencies.
+This guide takes you from a plaintext YAML file to typed, validated options in a .NET app.
 
-## Installation
+## 1. Encrypt a file with sops
+
+Nops reads files produced by the [sops](https://github.com/getsops/sops) CLI; it does not encrypt.
 
 ```bash
-dotnet add package Nops.Core
+# One-time: create an age key where sops (and Nops) look for it
+mkdir -p ~/.config/sops/age
+age-keygen -o ~/.config/sops/age/keys.txt
+
+# Encrypt
+cat > secrets.yaml <<'EOF'
+Database:
+  Host: db.internal
+  Password: s3cret
+EOF
+sops -e --age "$(age-keygen -y ~/.config/sops/age/keys.txt)" secrets.yaml > secrets.sops.yaml
+rm secrets.yaml
 ```
 
-For ASP.NET Core integration:
+For a team, add a [`.sops.yaml`](https://getsops.io/docs/) with `creation_rules` so `sops -e` and `sops edit` pick the recipients for you (see [`samples/.sops.yaml`](https://github.com/atulmish/Nops/blob/main/samples/.sops.yaml)).
+
+## 2. Load it as configuration
 
 ```bash
 dotnet add package Nops.Configuration
 ```
 
-For cloud KMS providers (optional):
+```csharp
+using System.ComponentModel.DataAnnotations;
+using Nops.Configuration;
 
-```bash
-dotnet add package Nops.Core.AwsKms     # AWS KMS
-dotnet add package Nops.Core.GcpKms     # Google Cloud KMS
-dotnet add package Nops.Core.Azkv        # Azure Key Vault
-dotnet add package Nops.Core.Vault       # HashiCorp Vault + HCKMS
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddSops("secrets.sops.yaml");
+
+builder.Services.AddOptions<DatabaseOptions>()
+    .BindConfiguration("Database")
+    .ValidateDataAnnotations()   // Microsoft.Extensions.Options.DataAnnotations
+    .ValidateOnStart();
+
+var app = builder.Build();
+app.Run();
+
+public sealed class DatabaseOptions
+{
+    [Required] public string Host { get; set; } = "";
+    [Required] public string Password { get; set; } = "";
+}
 ```
 
-## Minimal Example - Decrypt a SOPS File
+No key configuration is needed on a machine where `sops decrypt` already works: Nops uses `SOPS_AGE_KEY`, `SOPS_AGE_KEY_FILE` and `~/.config/sops/age/keys.txt` like the CLI. In production, mount the key as a secret and set `SOPS_AGE_KEY_FILE`, or pass keys explicitly:
+
+```csharp
+builder.Configuration.AddSops("secrets.sops.yaml", opts =>
+{
+    opts.AgeIdentities = ["/run/secrets/age-key.txt"];
+    opts.UseSopsEnvironment = false;   // only use the keys listed here
+});
+```
+
+## 3. Or decrypt without configuration
+
+```bash
+dotnet add package Nops.Core
+```
 
 ```csharp
 using Nops.Core;
 
-var fileBytes = File.ReadAllBytes("secrets.sops.yaml");
+var bytes = await File.ReadAllBytesAsync("secrets.sops.yaml");
+var options = new SopsOptions();
 
-var options = new SopsOptions
-{
-    FilePath = "secrets.sops.yaml",
-    AgeIdentities = new[] { /* age private keys or paths */ },
-    // Or: PgpKeys = new[] { (pgpPrivateKeyBytes, passphrase) }
-};
+// Flattened key-value pairs ("Database:Password")
+var values = await SopsFile.DecryptToDictionaryAsync(bytes, "yaml", options);
 
-// Option 1: Get flattened key-value pairs
-var dict = await SopsFile.DecryptToDictionaryAsync(fileBytes, "yaml", options);
-Console.WriteLine(dict["app:db:password"]);
+// Typed object (System.Text.Json binding over the decrypted tree)
+var settings = await SopsFile.DecryptAsync<MySettings>(bytes, "yaml", options);
 
-// Option 2: Get typed object
-var config = await SopsFile.DeserializeAsync<MyConfig>(fileBytes, "yaml", options);
-Console.WriteLine(config.Database.Password);
-
-// Option 3: Get ordered tree (for round-trip edit + re-encrypt later)
-var tree = await SopsFile.DecryptTreeAsync(fileBytes, "yaml", options);
+// Ordered tree, including comments, for tooling
+var tree = await SopsFile.DecryptTreeAsync(bytes, "yaml", options);
 ```
 
-## ASP.NET Core Example
+The file kind is one of `yaml`, `json`, `dotenv`, `ini` or `binary`.
 
-```csharp
-// Program.cs
-var builder = WebApplication.CreateBuilder(args);
+## Run the samples
 
-builder.Configuration.AddSops("secrets.sops.yaml", opts =>
-{
-    opts.Optional = false;        // Throw if missing
-    opts.WatchForChanges = true;  // Auto-reload on file change
-});
-
-var app = builder.Build();
-
-app.MapGet("/health", () => 
-    $"DB password loaded: {app.Configuration["app:db:password"]?.Substring(0, 2)}**");
-
-app.Run();
-```
-
-## Running the Samples
+Both samples ship a `secrets.sops.yaml` encrypted with the repository's TEST-ONLY age key, and their `launchSettings.json` points `SOPS_AGE_KEY_FILE` at it:
 
 ```bash
-# Minimal API sample
-cd samples/MinimalApiSample
-dotnet run
-
-# Configuration sample
-cd samples/ConfigurationSample  
-dotnet run
+cd samples/ConfigurationSample && dotnet run      # generic host, validated options
+cd samples/MinimalApiSample && dotnet run         # then: curl http://localhost:5080/
+cd samples/LayeredConfigSample && dotnet run      # appsettings.json + secrets file, shows each value's source
 ```
 
-Both samples use test fixtures - never prod keys.
+## Next steps
 
-## Next Steps
-
-- [Configuration Provider](configuration.md) - ASP.NET Core integration details
-- [Cloud KMS Setup](cloud-kms.md) - AWS, GCP, Azure, Vault authentication
-- [Test Keys](test-keys.md) - Managing test-only cryptographic material
+- [Configuration reference](configuration.md): all options, key flattening, reload, error handling
+- [Deploying with Nops](deployment.md): config layout, Kubernetes and Docker, key rotation, troubleshooting
+- [Cloud KMS setup](cloud-kms.md): AWS, GCP, Azure Key Vault, HashiCorp Vault
+- [Test keys](test-keys.md): how fixtures and test keys are managed
