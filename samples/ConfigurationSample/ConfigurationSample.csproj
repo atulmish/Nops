@@ -11,8 +11,8 @@
   <ItemGroup>
     <!-- In your app: <PackageReference Include="Nops.Configuration" Version="1.0.0" /> -->
     <ProjectReference Include="..\..\src\Nops.Configuration\Nops.Configuration.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
