@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Every library now also targets `net11.0` (alongside `net8.0` and `net10.0`). The repository SDK pin moves to .NET SDK 11.
 - OpenSSF Best Practices badge (passing level) in the README
 
 ## [1.1.1] - 2026-10-25
