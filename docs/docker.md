@@ -17,7 +17,7 @@ ENV SOPS_AGE_KEY_FILE=/run/secrets/age/keys.txt
 ENTRYPOINT ["dotnet", "MyApi.dll"]
 ```
 
-Use `8.0` in place of `10.0` for .NET 8. For a worker service use the `runtime` image instead of `aspnet`. The `dotnet new nops-webapi` and `dotnet new nops-worker` templates include this Dockerfile.
+Use `8.0` in place of `10.0` for .NET 8. .NET 11 images are only published for Ubuntu 26.04, so use `11.0-resolute-chiseled` in place of `10.0-noble-chiseled` for .NET 11. For a worker service use the `runtime` image instead of `aspnet`. The `dotnet new nops-webapi` and `dotnet new nops-worker` templates include this Dockerfile.
 
 The encrypted `secrets.sops.yaml` is published with the application (mark it `CopyToOutputDirectory` in the project file). The age key is **not** part of the image.
 

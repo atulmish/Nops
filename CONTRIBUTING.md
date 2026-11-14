@@ -8,7 +8,7 @@ Look at the issues labelled [`good first issue`](https://github.com/atulmish/Nop
 
 ## Development setup
 
-1. Install the .NET SDK version pinned in `global.json`, and the .NET 8 runtime as well. The libraries and tests target `net8.0` and `net10.0`, and `dotnet test` runs both.
+1. Install the .NET SDK version pinned in `global.json`, and the .NET 8 and .NET 10 runtimes as well. The libraries and tests target `net8.0`, `net10.0` and `net11.0`, and `dotnet test` runs all three.
 2. Clone the repository and build:
 
    ```bash

@@ -22,4 +22,4 @@ This is the direction for Nops after 1.1. Items are not promises or dates. Their
 
 ## Compatibility promise
 
-Nops follows [Semantic Versioning](https://semver.org/). The public API of the 1.x releases will not break. The libraries target .NET 8 and .NET 10, the long-term support releases, and a new release is added when it becomes generally available.
+Nops follows [Semantic Versioning](https://semver.org/). The public API of the 1.x releases will not break. The libraries target .NET 8, .NET 10 and .NET 11, and a new release is added when it becomes generally available.
