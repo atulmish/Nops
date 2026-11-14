@@ -5,7 +5,7 @@ WORKDIR /src
 COPY . .
 RUN dotnet publish NopsWebApi.csproj -c Release -o /out
 
-FROM mcr.microsoft.com/dotnet/aspnet:__DOTNET_VERSION__-noble-chiseled AS final
+FROM mcr.microsoft.com/dotnet/aspnet:__DOTNET_VERSION__-__DISTRO__-chiseled AS final
 WORKDIR /app
 COPY --from=build /out .
 ENV SOPS_AGE_KEY_FILE=/run/secrets/age/keys.txt

@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Every library now also targets `net11.0` (alongside `net8.0` and `net10.0`). The repository SDK pin moves to .NET SDK 11.
+- `Nops.Templates`: `dotnet new nops-webapi` and `dotnet new nops-worker` accept `--Framework net11.0`. The Dockerfile uses the Ubuntu 26.04 (`resolute`) base image for .NET 11, because .NET 11 images are not published for `noble`
 - OpenSSF Best Practices badge (passing level) in the README
 
 ## [1.1.1] - 2026-10-25
